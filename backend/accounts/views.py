@@ -1,6 +1,7 @@
 
 from rest_framework import generics
-from accounts.serializers import RegistrationSerializer,LoginSerializer,UserSerializer
+from accounts.serializers import RegistrationSerializer,LoginSerializer,UserSerializer,ChangePasswordSerializer
+from rest_framework.permissions import IsAuthenticated
 from accounts.permissions import IsDoctorOrSuperuser
 from rest_framework.views import APIView
 from accounts.models import User
@@ -57,5 +58,30 @@ class LoginView(APIView):
         return Response({
             'status': 'error',
             'message': 'Login failed',
+            'errors': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class ChangePasswordView(APIView):
+    """Change password for authenticated users"""
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        serializer = ChangePasswordSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response({
+                'status': 'success',
+                'message': 'Password changed successfully.'
+            }, status=status.HTTP_200_OK)
+        
+        return Response({
+            'status': 'error',
+            'message': 'Password change failed',
             'errors': serializer.errors
         }, status=status.HTTP_400_BAD_REQUEST)
