@@ -4,8 +4,6 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from .models import User, Profile, Role, UserRole
 from datetime import datetime
-
-
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
@@ -80,3 +78,35 @@ class RegistrationSerializer(serializers.ModelSerializer):
         UserRole.objects.create(user=user, role=role)
         
         return user
+
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+    
+    def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Invalid email or password.")
+        
+        if not user.check_password(password):
+            raise serializers.ValidationError("Invalid email or password.")
+        if not user.is_active:
+            raise serializers.ValidationError("User account is disabled.")
+        
+        attrs['user'] = user
+        return attrs
+
+class UserSerializer(serializers.ModelSerializer):
+    role = serializers.SerializerMethodField()
+    class Meta:
+        model = User 
+        fields = ['user_id', 'email', 'is_active', 'created_at', 'role']
+    
+    def get_role(self, obj):   
+        user_role = obj.userrole_set.first()
+        return user_role.role.role_name if user_role else None
