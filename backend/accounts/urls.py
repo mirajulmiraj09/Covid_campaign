@@ -1,6 +1,7 @@
 from django.urls import path, include
-from accounts.views import home
+from accounts.views import PatientRegistrationView, DoctorRegistrationView
 
 urlpatterns = [
-    path("home/",home,name="home"),
+    path('register/patient/', PatientRegistrationView.as_view()),
+    path('register/doctor/', DoctorRegistrationView.as_view()),
 ]
