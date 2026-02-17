@@ -150,3 +150,97 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
+
+class BaseProfileSerializer(serializers.ModelSerializer):
+    """Base Profile Serializer"""
+    email = serializers.EmailField(source='user.email', read_only=True)
+    role = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Profile
+        fields = [
+            'profile_id', 'email', 'first_name', 'last_name', 
+            'nid', 'dob', 'gender', 'phone', 'address', 'role'
+        ]
+        read_only_fields = ['profile_id', 'nid', 'email']
+    
+    def get_role(self, obj):
+        return list(obj.user.roles.values_list('role_name', flat=True))
+
+
+class PatientProfileSerializer(serializers.ModelSerializer):
+    """Patient Profile Serializer"""
+    email = serializers.EmailField(source='user.email', read_only=True)
+    role = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Profile
+        fields = [
+            'profile_id', 'email', 'first_name', 'last_name', 
+            'nid', 'dob', 'gender', 'phone', 'address', 
+            'medical_history', 'role', 'profile_pic_url'
+        ]
+        read_only_fields = ['profile_id', 'nid', 'email']
+    
+    def get_role(self, obj):
+        return list(obj.user.roles.values_list('role_name', flat=True))
+
+
+class DoctorProfileSerializer(serializers.ModelSerializer):
+    """Doctor Profile Serializer"""
+    email = serializers.EmailField(source='user.email', read_only=True)
+    role = serializers.SerializerMethodField()
+    profile_pic_url = serializers.ImageField(required=False, allow_null=True)
+    
+    class Meta:
+        model = Profile
+        fields = [
+            'profile_id', 'email', 'first_name', 'last_name', 
+            'nid', 'dob', 'gender', 'phone', 'address', 
+            'specialization', 'profile_pic_url', 'role'
+        ]
+        read_only_fields = ['profile_id', 'nid', 'email']
+    
+    def get_role(self, obj):
+        return list(obj.user.roles.values_list('role_name', flat=True))
+
+
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    """Profile Update Serializer"""
+    profile_pic_url = serializers.ImageField(required=False, allow_null=True)
+    
+    class Meta:
+        model = Profile
+        fields = [
+            'first_name', 'last_name', 'dob', 'gender', 
+            'phone', 'address', 'medical_history', 
+            'specialization', 'profile_pic_url'
+        ]
+    def get_fields(self):
+        fields = super().get_fields()
+        user = self.context['request'].user
+        user_roles = list(user.roles.values_list('role_name', flat=True))
+
+        # Doctor cannot see medical_history
+        if 'Doctor' in user_roles:
+            fields.pop('medical_history', None)
+
+        # Patient cannot see specialization
+        if 'Patient' in user_roles:
+            fields.pop('specialization', None)
+
+        return fields
+    
+    def validate(self, attrs):
+        user = self.context['request'].user
+        user_roles = list(user.roles.values_list('role_name', flat=True))
+
+        # Doctor cannot update medical_history
+        if 'Doctor' in user_roles:
+            attrs.pop('medical_history', None)
+
+        # Patient cannot update specialization
+        if 'Patient' in user_roles:
+            attrs.pop('specialization', None)
+
+        return attrs
