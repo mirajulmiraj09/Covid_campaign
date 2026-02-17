@@ -4,6 +4,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from .models import User, Profile, Role, UserRole
 from datetime import datetime
+
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
