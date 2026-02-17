@@ -1,34 +1,37 @@
-from django.http import HttpResponse
-from rest_framework.views import APIView
-from rest_framework.generics import ListAPIView, CreateAPIView
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
 
-from campaigns.models import Campaign, Vaccine
-from .models import Booking
-from .serializers import BookingSerializer, BookingCreateSerializer, CampaignVaccinesSerializer
-# operations/views.py
-from rest_framework import generics, status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.decorators import api_view, permission_classes
+# Django Imports
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
+
+# Python Standard Library
 from datetime import datetime
+import io
+
+# DRF Imports
+from rest_framework import generics, status
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.generics import ListAPIView, CreateAPIView
+
+# ReportLab
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+
+# Local App Imports
+from campaigns.models import Campaign, Vaccine
+from accounts.models import Profile
 from .models import Booking, VaccinationRecord
 from .serializers import (
     BookingSerializer,
     BookingCreateSerializer,
     VaccinationRecordSerializer,
-    VaccinateSerializer
+    VaccinateSerializer,
+    CampaignVaccinesSerializer
 )
 from .permissions import IsDoctor, IsPatient, IsBookingOwner
-from accounts.models import Profile
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from django.http import HttpResponse
-import io
 
 
 class MyBookingsView(ListAPIView):
