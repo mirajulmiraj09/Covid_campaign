@@ -1,18 +1,25 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
+// import { useAuth } from '../../context/AuthContext'
 import Navbar from '../../components/Navbar'
 import api from '../../services/api'
 
 export default function PatientDashboard() {
-  const { user, isPatient } = useAuth()
+  // const { user, isPatient } = useAuth()
   const navigate = useNavigate()
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
 
+  // useEffect(() => {
+  //   if (!isPatient) navigate('/login')
+     
+  // }, [isPatient]) 
+
   useEffect(() => {
-    if (!isPatient) navigate('/login')
-  }, [isPatient])
+  if (!localStorage.getItem("token")) {
+    navigate("/login");
+  }
+}, [navigate]);
 
   useEffect(() => {
     fetchBookings()
@@ -75,7 +82,7 @@ export default function PatientDashboard() {
 
       <div className="max-w-6xl mx-auto px-8 py-10">
         <h2 className="text-3xl font-bold text-gray-800 mb-2">Patient Dashboard</h2>
-        <p className="text-gray-500 mb-8">Welcome back, {user?.email}</p>
+        {/* <p className="text-gray-500 mb-8">Welcome back, {user?.email}</p> */}
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-10">
