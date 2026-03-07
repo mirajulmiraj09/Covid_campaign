@@ -8,7 +8,6 @@ export default function AdminCampaigns() {
   const { isAdmin } = useAuth()
   const navigate = useNavigate()
   const [campaigns, setCampaigns] = useState([])
-  const [doctors, setDoctors] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -33,12 +32,8 @@ export default function AdminCampaigns() {
 
   const fetchData = async () => {
     try {
-      const [campRes, docRes] = await Promise.all([
-        api.get('campaigns/'),
-        api.get('doctors/'),
-      ])
+      const campRes = await api.get('campaigns/')
       setCampaigns(campRes.data.data || [])
-      setDoctors(docRes.data.data || docRes.data || [])
     } catch (err) {
       console.error(err)
     } finally {
