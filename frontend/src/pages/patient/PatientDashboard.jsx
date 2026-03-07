@@ -1,21 +1,26 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../context/AuthContext'
+// import { useAuth } from '../../context/AuthContext'
 import Navbar from '../../components/Navbar'
 import api from '../../services/api'
 
 export default function PatientDashboard() {
-  const { user, isPatient } = useAuth()
+  // const { user, isPatient } = useAuth()
   const navigate = useNavigate()
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState(null)
 
-   useEffect(() => {
-  if (user?.role !== 'Patient') {
-    navigate('/login')
+  // useEffect(() => {
+  //   if (!isPatient) navigate('/login')
+     
+  // }, [isPatient]) 
+
+  useEffect(() => {
+  if (!localStorage.getItem("token")) {
+    navigate("/login");
   }
-}, [user])
+}, [navigate]);
 
 useEffect(() => {
   fetchBookings()
@@ -40,6 +45,8 @@ useEffect(() => {
 
   const getStatusColor = (status) => {
     if (status === 'Completed') return 'bg-green-100 text-green-700'
+    if (status === 'Approved') return 'bg-blue-100 text-blue-700'
+    if (status === 'Rejected') return 'bg-red-100 text-red-600'
     if (status === 'Cancelled') return 'bg-red-100 text-red-700'
     return 'bg-yellow-100 text-yellow-700'
   }
@@ -85,10 +92,10 @@ useEffect(() => {
 
       <div className="max-w-6xl mx-auto px-8 py-10">
         <h2 className="text-3xl font-bold text-gray-800 mb-2">Patient Dashboard</h2>
-        <p className="text-gray-500 mb-8">Welcome back, {user?.email}</p>
+        {/* <p className="text-gray-500 mb-8">Welcome back, {user?.email}</p> */}
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-10">
           <div className="bg-white rounded-xl p-6 shadow-sm text-center">
             <div className="text-4xl font-bold text-blue-600">{bookings.length}</div>
             <div className="text-gray-500 mt-1">Total Bookings</div>
@@ -105,7 +112,13 @@ useEffect(() => {
             </div>
             <div className="text-gray-500 mt-1">Pending</div>
           </div>
-          {/* <div
+          <div className="bg-white rounded-xl p-6 shadow-sm text-center">
+            <div className="text-4xl font-bold text-blue-500">
+              {bookings.filter(b => b.status === 'Approved').length}
+            </div>
+            <div className="text-gray-500 mt-1">Approved</div>
+          </div>
+          <div
             onClick={handleDownloadCertificate}
             className="bg-white rounded-xl p-6 shadow-sm text-center cursor-pointer hover:shadow-md transition-shadow"
           >
@@ -160,6 +173,16 @@ useEffect(() => {
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(booking.status)}`}>
                         {booking.status}
                       </span>
+                    </td>
+                    <td className="py-3">
+                      {(booking.status === 'Pending' || booking.status === 'Approved') && (
+                        <button
+                          onClick={() => handleCancel(booking.booking_id)}
+                          className="text-red-500 text-sm hover:underline"
+                        >
+                          Cancel
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

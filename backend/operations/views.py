@@ -103,7 +103,7 @@ class CampaignVaccinesView(APIView):
 
 class BookingCancelView(APIView):
     """
-    POST: Cancel a booking (owner only, pending only)
+    POST: Cancel a booking (owner only, pending or approved only)
     """
     permission_classes = [IsPatient, IsBookingOwner]
     
@@ -117,8 +117,8 @@ class BookingCancelView(APIView):
                 'message': 'You do not have permission to cancel this booking.'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        # Check if pending
-        if booking.status != 'Pending':
+        # Check if pending or approved
+        if booking.status not in ('Pending', 'Approved'):
             return Response({
                 'status': 'error',
                 'message': f'Cannot cancel booking with status: {booking.status}'
@@ -141,27 +141,35 @@ class BookingCancelView(APIView):
 
 class DoctorAppointmentsView(generics.ListAPIView):
     """
-    GET: List doctor's appointments for a specific date
+    GET: List doctor's approved appointments.
+    Query params:
+      ?date=YYYY-MM-DD  → filter specific date (default: today)
+      ?scope=upcoming   → all approved from today onward
     """
     serializer_class = BookingSerializer
     permission_classes = [IsDoctor]
     
     def get_queryset(self):
-        # Get date from query params
+        scope = self.request.query_params.get('scope', None)
+        today = timezone.now().date()
+
+        base = Booking.objects.filter(
+            status='Approved'
+        ).select_related('patient', 'vaccine', 'vaccine__campaign')
+
+        if scope == 'upcoming':
+            return base.filter(scheduled_date__gte=today).order_by('scheduled_date')
+
         date_str = self.request.query_params.get('date', None)
-        
         if date_str:
             try:
                 filter_date = datetime.strptime(date_str, '%Y-%m-%d').date()
             except ValueError:
-                filter_date = timezone.now().date()
+                filter_date = today
         else:
-            filter_date = timezone.now().date()
-        
-        return Booking.objects.filter(
-            scheduled_date=filter_date,
-            status='Pending'
-        ).select_related('patient', 'vaccine', 'vaccine__campaign').order_by('scheduled_date')
+            filter_date = today
+
+        return base.filter(scheduled_date=filter_date).order_by('scheduled_date')
     
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -174,6 +182,117 @@ class DoctorAppointmentsView(generics.ListAPIView):
             'date': date_str,
             'count': len(serializer.data),
             'data': serializer.data
+        }, status=status.HTTP_200_OK)
+
+
+class PendingBookingsView(generics.ListAPIView):
+    """
+    GET: List pending bookings for campaigns the doctor is assigned to.
+    Query params: ?category=today|previous|upcoming (default: all)
+    """
+    serializer_class = BookingSerializer
+    permission_classes = [IsDoctor]
+
+    def get_queryset(self):
+        doctor = self.request.user
+        today = timezone.now().date()
+        assigned_campaigns = Campaign.objects.filter(assigned_doctors=doctor)
+        base = Booking.objects.filter(
+            vaccine__campaign__in=assigned_campaigns,
+            status='Pending'
+        ).select_related('patient', 'vaccine', 'vaccine__campaign')
+
+        category = self.request.query_params.get('category', None)
+        if category == 'today':
+            return base.filter(scheduled_date=today).order_by('created_at')
+        elif category == 'previous':
+            return base.filter(scheduled_date__lt=today).order_by('-scheduled_date')
+        elif category == 'upcoming':
+            return base.filter(scheduled_date__gt=today).order_by('scheduled_date')
+        return base.order_by('created_at')
+
+    def list(self, request, *args, **kwargs):
+        doctor = request.user
+        today = timezone.now().date()
+        assigned_campaigns = Campaign.objects.filter(assigned_doctors=doctor)
+        base = Booking.objects.filter(
+            vaccine__campaign__in=assigned_campaigns,
+            status='Pending'
+        )
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response({
+            'status': 'success',
+            'count': len(serializer.data),
+            'today_count': base.filter(scheduled_date=today).count(),
+            'previous_count': base.filter(scheduled_date__lt=today).count(),
+            'upcoming_count': base.filter(scheduled_date__gt=today).count(),
+            'data': serializer.data
+        }, status=status.HTTP_200_OK)
+
+
+class BookingApproveView(APIView):
+    """POST: Approve a pending booking (assigned doctor only)"""
+    permission_classes = [IsDoctor]
+
+    def post(self, request, booking_id):
+        booking = get_object_or_404(Booking, booking_id=booking_id)
+
+        if booking.status != 'Pending':
+            return Response({
+                'status': 'error',
+                'message': f'Cannot approve booking with status: {booking.status}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Only doctors assigned to the campaign can approve
+        campaign = booking.vaccine.campaign
+        if not campaign.assigned_doctors.filter(pk=request.user.pk).exists():
+            return Response({
+                'status': 'error',
+                'message': 'You are not assigned to this campaign.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        booking.status = 'Approved'
+        booking.save()
+
+        return Response({
+            'status': 'success',
+            'message': 'Booking approved successfully.'
+        }, status=status.HTTP_200_OK)
+
+
+class BookingRejectView(APIView):
+    """POST: Reject a pending booking (assigned doctor only)"""
+    permission_classes = [IsDoctor]
+
+    def post(self, request, booking_id):
+        booking = get_object_or_404(Booking, booking_id=booking_id)
+
+        if booking.status != 'Pending':
+            return Response({
+                'status': 'error',
+                'message': f'Cannot reject booking with status: {booking.status}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Only doctors assigned to the campaign can reject
+        campaign = booking.vaccine.campaign
+        if not campaign.assigned_doctors.filter(pk=request.user.pk).exists():
+            return Response({
+                'status': 'error',
+                'message': 'You are not assigned to this campaign.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        booking.status = 'Rejected'
+        booking.save()
+
+        # Restore stock since booking is rejected
+        vaccine = booking.vaccine
+        vaccine.stock_quantity += 1
+        vaccine.save()
+
+        return Response({
+            'status': 'success',
+            'message': 'Booking rejected successfully.'
         }, status=status.HTTP_200_OK)
 
 

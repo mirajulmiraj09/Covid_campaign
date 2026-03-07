@@ -7,6 +7,8 @@ class Booking(models.Model):
     """Transactional data (The Plan)"""
     STATUS_CHOICES = [
         ('Pending', 'Pending'),
+        ('Approved', 'Approved'),
+        ('Rejected', 'Rejected'),
         ('Completed', 'Completed'),
         ('Cancelled', 'Cancelled'),
     ]

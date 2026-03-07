@@ -16,6 +16,7 @@ from campaigns.serializers import (
 )
 from campaigns.permissions import IsDoctor, IsSuperuserOrStaff
 from accounts.models import Role
+from accounts.utils import is_patient
 
 User = get_user_model()
 
@@ -35,6 +36,10 @@ class CampaignListCreateView(generics.ListCreateAPIView):
     
     def get_queryset(self):
         queryset = Campaign.objects.all()
+        
+        # Patients can only see public campaigns
+        if self.request.user.is_authenticated and is_patient(self.request.user):
+            queryset = queryset.filter(visibility='public')
         
         # Filter by is_active
         is_active = self.request.query_params.get('is_active', None)
@@ -231,7 +236,9 @@ class CampaignDetailView(APIView):
 
 
 class CampaignPatientsView(APIView):
-    """GET: List patients booked for a campaign (assigned doctor, creator, or superuser)"""
+    """GET: List patients booked for a campaign, categorised by schedule.
+    Query params: ?category=today|previous|upcoming (default: all)
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request, campaign_id):
@@ -254,11 +261,42 @@ class CampaignPatientsView(APIView):
         from operations.models import Booking
         from operations.serializers import BookingSerializer
 
-        bookings = (
+        today = timezone.now().date()
+        base_qs = (
             Booking.objects.filter(vaccine__campaign_id=campaign.campaign_id)
             .select_related('patient__profile', 'vaccine')
-            .order_by('-scheduled_date')
         )
+
+        category = request.query_params.get('category', None)
+
+        if category == 'today':
+            bookings = base_qs.filter(scheduled_date=today).order_by('-created_at')
+        elif category == 'previous':
+            bookings = base_qs.filter(scheduled_date__lt=today).order_by('-scheduled_date')
+        elif category == 'upcoming':
+            bookings = base_qs.filter(scheduled_date__gt=today).order_by('scheduled_date')
+        elif category == 'vaccinated':
+            bookings = base_qs.filter(status='Completed').order_by('-scheduled_date')
+        else:
+            # Return all with category counts
+            today_qs = base_qs.filter(scheduled_date=today)
+            previous_qs = base_qs.filter(scheduled_date__lt=today)
+            upcoming_qs = base_qs.filter(scheduled_date__gt=today)
+            vaccinated_qs = base_qs.filter(status='Completed')
+
+            serializer = BookingSerializer(
+                base_qs.order_by('-scheduled_date'), many=True, context={'request': request}
+            )
+            return Response({
+                'status': 'success',
+                'count': len(serializer.data),
+                'today_count': today_qs.count(),
+                'previous_count': previous_qs.count(),
+                'upcoming_count': upcoming_qs.count(),
+                'vaccinated_count': vaccinated_qs.count(),
+                'data': serializer.data
+            }, status=status.HTTP_200_OK)
+
         serializer = BookingSerializer(bookings, many=True, context={'request': request})
         return Response(
             {'status': 'success', 'count': len(serializer.data), 'data': serializer.data},
