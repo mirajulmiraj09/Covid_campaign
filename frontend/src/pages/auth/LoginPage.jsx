@@ -29,7 +29,7 @@ export default function LoginPage() {
         navigate('/patient/dashboard')
       }
     } catch (err) {
-      setError('Invalid email or password.')
+      setError('Invalid email or password.'+ (err.response?.data?.message ? ` (${err.response.data.message})` : ''))
     } finally {
       setLoading(false)
     }

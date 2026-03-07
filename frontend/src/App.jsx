@@ -23,6 +23,7 @@ export default function App() {
       {/* Public */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      {/* <Route path="/logout" element={<LogoutPage />} /> */}
       <Route path="/register" element={<RegisterPage />} />
 
       {/* Admin */}
