@@ -52,6 +52,7 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = 'accounts.User'
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -153,3 +154,7 @@ SIMPLE_JWT = {
     'USER_ID_FIELD': 'user_id',  
     'USER_ID_CLAIM': 'user_id',
 }
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+]
