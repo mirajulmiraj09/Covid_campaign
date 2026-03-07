@@ -39,22 +39,25 @@ export default function PatientDashboard() {
     }
   }
 
-  const handleDownloadCertificate = async () => {
-    try {
-      const profileRes = await api.get('profiles/me/')
-      const nid = profileRes.data.data?.nid || profileRes.data?.nid
-      if (!nid) {
-        alert('NID not found on your profile. Cannot download certificate.')
-        return
-      }
-      const res = await api.get(`certificates/${nid}/`, { responseType: 'blob' })
-      const contentType = res.headers['content-type']
-      if (contentType && contentType.includes('application/json')) {
-        const text = await res.data.text()
-        const json = JSON.parse(text)
-        alert(json.message || 'Certificate not available yet.')
-        return
-      }
+const handleDownloadCertificate = async () => {
+  try {
+    const profileRes = await api.get('profiles/me/')
+    const nid = profileRes.data.data?.nid || profileRes.data?.nid
+    console.log('NID found:', nid)
+    
+    if (!nid) {
+      alert('NID not found!')
+      return
+    }
+
+    const res = await api.get(`certificates/${nid}/`, { responseType: 'blob' })
+    console.log('Response status:', res.status)
+    console.log('Content-Type:', res.headers['content-type'])
+
+    const text = await res.data.text()
+    console.log('Raw response:', text)
+
+    if (res.headers['content-type']?.includes('application/pdf')) {
       const url = window.URL.createObjectURL(new Blob([res.data]))
       const link = document.createElement('a')
       link.href = url
@@ -63,27 +66,31 @@ export default function PatientDashboard() {
       link.click()
       link.remove()
       window.URL.revokeObjectURL(url)
-    } catch (err) {
-      if (err.response?.data instanceof Blob) {
-        const text = await err.response.data.text()
-        try {
-          const json = JSON.parse(text)
-          alert(json.message || 'Certificate not available yet.')
-        } catch {
-          alert('Certificate not available yet.')
-        }
-      } else {
-        alert(err.response?.data?.message || 'Certificate not available yet.')
-      }
+    } else {
+      const json = JSON.parse(text)
+      alert('Backend says: ' + json.message)
+    }
+
+  } catch (err) {
+    console.log('Error status:', err.response?.status)
+    if (err.response?.data instanceof Blob) {
+      const text = await err.response.data.text()
+      console.log('Error response:', text)
+      alert('Error: ' + text)
+    } else {
+      console.log('Error data:', err.response?.data)
+      alert('Error: ' + JSON.stringify(err.response?.data))
     }
   }
+}
 
   const getStatusColor = (status) => {
     if (status === 'Completed') return 'bg-green-100 text-green-700'
+    if (status === 'Approved') return 'bg-blue-100 text-blue-700'
     if (status === 'Cancelled') return 'bg-red-100 text-red-700'
+    if (status === 'Rejected') return 'bg-red-100 text-red-600'
     return 'bg-yellow-100 text-yellow-700'
-  }
-
+}
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />

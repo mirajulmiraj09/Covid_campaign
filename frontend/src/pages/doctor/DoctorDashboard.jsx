@@ -15,9 +15,9 @@ export default function DoctorDashboard() {
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(null)
 
-  useEffect(() => {
-    if (!isDoctor) navigate('/login')
-  }, [isDoctor])
+  // useEffect(() => {
+  //   if (!isDoctor) navigate('/login')
+  // }, [isDoctor])
 
   useEffect(() => {
     fetchAll()
