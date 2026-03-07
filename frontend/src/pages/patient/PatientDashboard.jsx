@@ -9,20 +9,27 @@ export default function PatientDashboard() {
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchBookings()
-  }, [])
+   useEffect(() => {
+  if (user?.role !== 'Patient') {
+    navigate('/login')
+  }
+}, [user])
+
+useEffect(() => {
+  fetchBookings()
+}, [])
 
   const fetchBookings = async () => {
-    try {
-      const res = await api.get('bookings/my-bookings/')
-      setBookings(res.data.data || [])
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
+  try {
+    const res = await api.get('bookings/my-bookings/')
+    console.log('Bookings response:', res.data)
+    setBookings(res.data || [])
+  } catch (err) {
+    console.error(err)
+  } finally {
+    setLoading(false)
   }
+}
 
   const handleLogout = () => {
     logout()

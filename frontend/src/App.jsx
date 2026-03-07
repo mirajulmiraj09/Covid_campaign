@@ -19,7 +19,7 @@ export default function App() {
       <Route path="/patient/dashboard" element={<PatientDashboard />} />
       <Route path="/patient/book" element={<BookAppointment />} />
       <Route path="/doctor/dashboard" element={<DoctorDashboard />} />
-      <Route path="doctor/ManageCampaigns" element={<ManageCampaigns />} />
+      <Route path="/doctor/campaigns" element={<ManageCampaigns />} />
       <Route path="/patient/profile" element={<ProfilePage />} />
       <Route path="/doctor/profile" element={<ProfilePage />} />
       <Route path="/doctor/campaigns/:campaignId/vaccines" element={<ManageVaccines />} />

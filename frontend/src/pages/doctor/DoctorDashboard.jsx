@@ -10,6 +10,12 @@ export default function DoctorDashboard() {
   const [campaigns, setCampaigns] = useState([])
   const [loading, setLoading] = useState(true)
 
+      useEffect(() => {
+      if (user?.role !== 'Doctor') {
+        navigate('/login')
+      }
+    }, [user])
+
   useEffect(() => {
     fetchAppointments()
     fetchCampaigns()
