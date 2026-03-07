@@ -16,24 +16,23 @@ export default function CampaignReviewDetail() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        const [campRes, revRes] = await Promise.all([
+          api.get(`campaigns/${campaignId}/`),
+          api.get(`campaigns/${campaignId}/reviews/`),
+        ])
+        setCampaign(campRes.data.data || campRes.data)
+        setReviews(revRes.data.data || revRes.data || [])
+        setAvgRating(revRes.data.average_rating || 0)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
     fetchAll()
   }, [campaignId])
-
-  const fetchAll = async () => {
-    try {
-      const [campRes, revRes] = await Promise.all([
-        api.get(`campaigns/${campaignId}/`),
-        api.get(`campaigns/${campaignId}/reviews/`),
-      ])
-      setCampaign(campRes.data.data || campRes.data)
-      setReviews(revRes.data.data || revRes.data || [])
-      setAvgRating(revRes.data.average_rating || 0)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()

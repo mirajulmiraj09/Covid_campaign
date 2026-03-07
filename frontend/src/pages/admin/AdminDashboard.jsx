@@ -13,7 +13,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!isAdmin) navigate('/login')
-  }, [isAdmin])
+  }, [isAdmin, navigate])
 
   useEffect(() => {
     fetchData()

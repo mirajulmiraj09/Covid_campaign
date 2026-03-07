@@ -29,7 +29,7 @@ export default function ManageDoctors() {
 
   useEffect(() => {
     if (!isAdmin) navigate('/login')
-  }, [isAdmin])
+  }, [isAdmin, navigate])
 
   useEffect(() => {
     fetchDoctors()

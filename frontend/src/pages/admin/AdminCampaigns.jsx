@@ -24,7 +24,7 @@ export default function AdminCampaigns() {
 
   useEffect(() => {
     if (!isAdmin) navigate('/login')
-  }, [isAdmin])
+  }, [isAdmin, navigate])
 
   useEffect(() => {
     fetchData()

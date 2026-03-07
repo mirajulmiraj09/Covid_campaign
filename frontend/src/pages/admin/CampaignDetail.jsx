@@ -20,33 +20,32 @@ export default function CampaignDetail() {
 
   useEffect(() => {
     if (!isAdmin) navigate('/login')
-  }, [isAdmin])
+  }, [isAdmin, navigate])
 
   useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        const [campRes, patientsRes, docRes] = await Promise.all([
+          api.get(`campaigns/${campaignId}/`),
+          api.get(`campaigns/${campaignId}/patients/`),
+          api.get('doctors/'),
+        ])
+        const campData = campRes.data.data
+        setCampaign(campData)
+        setPatients(patientsRes.data.data || [])
+        setAllDoctors(docRes.data.data || docRes.data || [])
+
+        // Pre-select currently assigned doctors
+        const assignedIds = (campData.assigned_doctors_list || []).map((d) => d.id)
+        setSelectedDoctors(assignedIds)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
     fetchAll()
   }, [campaignId])
-
-  const fetchAll = async () => {
-    try {
-      const [campRes, patientsRes, docRes] = await Promise.all([
-        api.get(`campaigns/${campaignId}/`),
-        api.get(`campaigns/${campaignId}/patients/`),
-        api.get('doctors/'),
-      ])
-      const campData = campRes.data.data
-      setCampaign(campData)
-      setPatients(patientsRes.data.data || [])
-      setAllDoctors(docRes.data.data || docRes.data || [])
-
-      // Pre-select currently assigned doctors
-      const assignedIds = (campData.assigned_doctors_list || []).map((d) => d.id)
-      setSelectedDoctors(assignedIds)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const toggleDoctor = (docId) => {
     setSelectedDoctors((prev) =>
@@ -63,7 +62,18 @@ export default function CampaignDetail() {
         doctor_ids: selectedDoctors,
       })
       setSuccess('Doctors assigned successfully!')
-      fetchAll()
+      // Refresh campaign data
+      const [campRes, patientsRes, docRes] = await Promise.all([
+        api.get(`campaigns/${campaignId}/`),
+        api.get(`campaigns/${campaignId}/patients/`),
+        api.get('doctors/'),
+      ])
+      const campData = campRes.data.data
+      setCampaign(campData)
+      setPatients(patientsRes.data.data || [])
+      setAllDoctors(docRes.data.data || docRes.data || [])
+      const assignedIds = (campData.assigned_doctors_list || []).map((d) => d.id)
+      setSelectedDoctors(assignedIds)
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to assign doctors.')
     } finally {
