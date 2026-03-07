@@ -110,12 +110,14 @@ class CampaignCreateSerializer(serializers.ModelSerializer):
 class CampaignListSerializer(serializers.ModelSerializer):
     vaccine_count = serializers.SerializerMethodField()
     assigned_doctor_count = serializers.SerializerMethodField()
+    assigned_doctors_list = serializers.SerializerMethodField()
 
     class Meta:
         model = Campaign
         fields = [
             'campaign_id', 'title', 'description', 'start_date', 
-            'end_date', 'is_active', 'vaccine_count', 'assigned_doctor_count'
+            'end_date', 'is_active', 'vaccine_count', 'assigned_doctor_count',
+            'assigned_doctors_list'
         ]
     
     def get_vaccine_count(self, obj):
@@ -123,4 +125,15 @@ class CampaignListSerializer(serializers.ModelSerializer):
 
     def get_assigned_doctor_count(self, obj):
         return obj.assigned_doctors.count()
+
+    def get_assigned_doctors_list(self, obj):
+        doctors = obj.assigned_doctors.all()
+        result = []
+        for d in doctors:
+            name = d.email
+            if hasattr(d, 'profile'):
+                p = d.profile
+                name = f"Dr. {p.first_name} {p.last_name}"
+            result.append({'id': d.pk, 'name': name, 'email': d.email})
+        return result
 

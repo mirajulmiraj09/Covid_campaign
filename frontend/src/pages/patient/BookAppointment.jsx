@@ -57,7 +57,7 @@ const handleCampaignChange = (e) => {
     setSuccess('')
     try {
       await api.post('bookings/', formData)
-      setSuccess('Appointment booked successfully! Dose 2 has been automatically scheduled.')
+      setSuccess('Appointment booked successfully!')
       setTimeout(() => navigate('/patient/dashboard'), 2000)
     } catch (err) {
       setError(JSON.stringify(err.response?.data))

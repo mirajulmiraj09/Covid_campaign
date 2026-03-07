@@ -30,8 +30,7 @@ class CampaignListCreateView(generics.ListCreateAPIView):
     
     def get_permissions(self):
         if self.request.method == 'POST':
-            # Doctors, staff, and superusers can create campaigns
-            return [IsAuthenticated()]
+            return [IsSuperuserOrStaff()]
         return [IsAuthenticated()]
     
     def get_queryset(self):
@@ -46,11 +45,6 @@ class CampaignListCreateView(generics.ListCreateAPIView):
         return queryset.order_by('-created_at')
     
     def create(self, request, *args, **kwargs):
-        user = request.user
-        # Only doctors, staff, or superusers can create
-        if not (user.is_staff or user.is_superuser or user.roles.filter(role_name=Role.DOCTOR).exists()):
-            return Response({'status': 'error', 'message': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
-        
         serializer = self.get_serializer(data=request.data)
         
         if serializer.is_valid():
@@ -118,6 +112,12 @@ class VaccineCreateView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         
         if serializer.is_valid():
+            campaign = serializer.validated_data['campaign']
+            if not campaign.assigned_doctors.filter(pk=request.user.pk).exists():
+                return Response(
+                    {'status': 'error', 'message': 'You are not assigned to this campaign.'},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
             vaccine = serializer.save()
             
             response_serializer = VaccineSerializer(vaccine)
@@ -141,9 +141,20 @@ class VaccineUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsDoctor]
     lookup_field = 'vaccine_id'
     
+    def check_campaign_assignment(self, instance):
+        if not instance.campaign.assigned_doctors.filter(pk=self.request.user.pk).exists():
+            return Response(
+                {'status': 'error', 'message': 'You are not assigned to this campaign.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return None
+    
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
+        denied = self.check_campaign_assignment(instance)
+        if denied:
+            return denied
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         
         if serializer.is_valid():
@@ -163,6 +174,9 @@ class VaccineUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
     
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
+        denied = self.check_campaign_assignment(instance)
+        if denied:
+            return denied
         
         # Soft delete: set stock_quantity to 0
         instance.stock_quantity = 0

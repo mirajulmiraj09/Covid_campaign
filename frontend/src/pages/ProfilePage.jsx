@@ -1,18 +1,24 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import Navbar from '../components/Navbar'
 import api from '../services/api'
 
 export default function ProfilePage() {
   const { user } = useAuth()
-  const navigate = useNavigate()
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [formData, setFormData] = useState({})
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
+  const [passwordData, setPasswordData] = useState({
+    old_password: '',
+    new_password: '',
+    confirm_password: '',
+  })
+  const [passwordSuccess, setPasswordSuccess] = useState('')
+  const [passwordError, setPasswordError] = useState('')
 
   useEffect(() => {
     fetchProfile()
@@ -41,6 +47,28 @@ export default function ProfilePage() {
       fetchProfile()
     } catch (err) {
       setError(JSON.stringify(err.response?.data))
+    }
+  }
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault()
+    setPasswordError('')
+    setPasswordSuccess('')
+    try {
+      await api.post('auth/change-password/', passwordData)
+      setPasswordSuccess('Password changed successfully!')
+      setPasswordData({ old_password: '', new_password: '', confirm_password: '' })
+      setShowPasswordForm(false)
+    } catch (err) {
+      const data = err.response?.data
+      if (data?.errors) {
+        const msgs = Object.values(data.errors).flat().join(', ')
+        setPasswordError(msgs)
+      } else if (data?.message) {
+        setPasswordError(data.message)
+      } else {
+        setPasswordError('Failed to change password.')
+      }
     }
   }
 
@@ -177,6 +205,71 @@ export default function ProfilePage() {
             )}
           </div>
         )}
+
+        {/* Change Password Section */}
+        <div className="bg-white rounded-xl shadow-sm p-8 mt-8">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold text-gray-800">Change Password</h3>
+            <button
+              onClick={() => {
+                setShowPasswordForm(!showPasswordForm)
+                setPasswordError('')
+                setPasswordSuccess('')
+              }}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
+            >
+              {showPasswordForm ? 'Cancel' : 'Change Password'}
+            </button>
+          </div>
+
+          {passwordSuccess && (
+            <div className="bg-green-50 text-green-600 px-4 py-3 rounded-lg mb-4 text-sm">{passwordSuccess}</div>
+          )}
+          {passwordError && (
+            <div className="bg-red-50 text-red-500 px-4 py-3 rounded-lg mb-4 text-sm">{passwordError}</div>
+          )}
+
+          {showPasswordForm && (
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                <input
+                  type="password"
+                  value={passwordData.old_password}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, old_password: e.target.value }))}
+                  required
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                <input
+                  type="password"
+                  value={passwordData.new_password}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, new_password: e.target.value }))}
+                  required
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                <input
+                  type="password"
+                  value={passwordData.confirm_password}
+                  onChange={(e) => setPasswordData(prev => ({ ...prev, confirm_password: e.target.value }))}
+                  required
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700"
+              >
+                Update Password
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   )

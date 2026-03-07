@@ -175,13 +175,30 @@ export default function CampaignReviewDetail() {
             {campaign.vaccines && campaign.vaccines.length > 0 && (
               <div className="mt-6">
                 <h4 className="text-sm font-medium text-gray-700 mb-2">Available Vaccines</h4>
-                <div className="flex flex-wrap gap-2">
+                <div className="space-y-3">
                   {campaign.vaccines.map((v) => (
+                    <div key={v.vaccine_id} className="bg-blue-50 rounded-lg p-3">
+                      <div className="font-medium text-sm text-blue-800">{v.name}</div>
+                      <div className="text-xs text-blue-600 mt-1">
+                        {v.manufacturer || 'N/A'} · {v.total_doses} dose(s) · Interval: {v.dose_interval} days · Stock: {v.stock_quantity}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Assigned Doctors */}
+            {campaign.assigned_doctors_list && campaign.assigned_doctors_list.length > 0 && (
+              <div className="mt-6">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">Campaign Doctors</h4>
+                <div className="flex flex-wrap gap-2">
+                  {campaign.assigned_doctors_list.map((d) => (
                     <span
-                      key={v.vaccine_id}
-                      className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-medium"
+                      key={d.id}
+                      className="bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs font-medium"
                     >
-                      {v.name} — {v.available_doses} doses
+                      {d.name}
                     </span>
                   ))}
                 </div>

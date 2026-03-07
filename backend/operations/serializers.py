@@ -74,8 +74,8 @@ class BookingCreateSerializer(serializers.Serializer):
         patient = self.context['request'].user
         scheduled_date = validated_data['scheduled_date']
 
-        # Create dose 1
-        booking_dose_1 = Booking.objects.create(
+        # Create booking for dose 1 only
+        booking = Booking.objects.create(
             patient=patient,
             vaccine=vaccine,
             dose_number=1,
@@ -83,21 +83,11 @@ class BookingCreateSerializer(serializers.Serializer):
             status='Pending'
         )
 
-        # Auto-create dose 2 if vaccine requires it
-        if vaccine.total_doses > 1:
-            Booking.objects.create(
-                patient=patient,
-                vaccine=vaccine,
-                dose_number=2,
-                scheduled_date=scheduled_date + timedelta(days=vaccine.dose_interval),
-                status='Pending'
-            )
-
-        # Decrease stock by 1 per patient booking (not per dose)
+        # Decrease stock by 1 per patient booking
         vaccine.stock_quantity -= 1
         vaccine.save()
 
-        return booking_dose_1
+        return booking
 
 
 class CampaignVaccinesSerializer(serializers.ModelSerializer):
@@ -158,7 +148,19 @@ class VaccinateSerializer(serializers.Serializer):
         except Booking.DoesNotExist:
             raise serializers.ValidationError("Booking not found.")
         return value
-    
+
+    def validate(self, attrs):
+        booking = Booking.objects.select_related('vaccine__campaign').get(
+            booking_id=attrs['booking_id']
+        )
+        doctor = self.context['request'].user
+        campaign = booking.vaccine.campaign
+        if not campaign.assigned_doctors.filter(pk=doctor.pk).exists():
+            raise serializers.ValidationError(
+                "You are not assigned to this campaign."
+            )
+        return attrs
+
     def create(self, validated_data):
         booking = Booking.objects.get(booking_id=validated_data['booking_id'])
         doctor = self.context['request'].user
