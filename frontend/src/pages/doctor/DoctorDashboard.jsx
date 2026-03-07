@@ -68,6 +68,10 @@ export default function DoctorDashboard() {
             className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50">
             Profile
           </button>
+          <button onClick={() => navigate('/change-password')}
+  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+  Change Password
+</button>
           <button onClick={handleLogout}
             className="px-4 py-2 text-red-500 border border-red-500 rounded-lg hover:bg-red-50">
             Logout

@@ -42,7 +42,15 @@ useEffect(() => {
     return 'bg-yellow-100 text-yellow-700'
   }
 
-  
+  const handleCancel = async (bookingId) => {
+  if (!window.confirm('Are you sure you want to cancel this appointment?')) return
+  try {
+    await api.post(`bookings/${bookingId}/cancel/`)
+    fetchBookings()
+  } catch (err) {
+    console.error(err)
+  }
+}
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -64,6 +72,10 @@ useEffect(() => {
           className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50">
           Reviews
         </button>
+          <button onClick={() => navigate('/change-password')}
+              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+              Change Password
+            </button>
           <button onClick={handleLogout}
             className="px-4 py-2 text-red-500 border border-red-500 rounded-lg hover:bg-red-50">
             Logout
@@ -118,6 +130,7 @@ useEffect(() => {
                   <th className="pb-3">Dose</th>
                   <th className="pb-3">Date</th>
                   <th className="pb-3">Status</th>
+                  <th className="pb-3">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -131,6 +144,15 @@ useEffect(() => {
                         {booking.status}
                       </span>
                     </td>
+                    <td className="py-3">
+  {booking.status === 'Pending' && (
+    <button
+      onClick={() => handleCancel(booking.booking_id)}
+      className="px-3 py-1 bg-red-50 text-red-500 rounded-lg text-sm hover:bg-red-100">
+      Cancel
+    </button>
+  )}
+</td>
                   </tr>
                 ))}
               </tbody>
