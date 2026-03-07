@@ -12,6 +12,8 @@ class ProfileSerializer(serializers.ModelSerializer):
                   'gender', 'phone', 'address', 'medical_history']
     
     def validate_nid(self, value):
+        if not value.isdigit() or len(value) != 10 and len(value) != 17:
+            raise serializers.ValidationError("NID must be a 10-digit or 17-digit number.")
         if Profile.objects.filter(nid=value).exists():
             raise serializers.ValidationError("A user with this NID already exists.")
         return value

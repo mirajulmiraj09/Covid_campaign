@@ -28,15 +28,19 @@ export default function LoginPage() {
         navigate('/patient/dashboard')
       }
     } catch (err) {
+<<<<<<< HEAD
         console.error('Login error:', err)  // Debug log
       setError('Invalid email or password.')
+=======
+      setError('Invalid email or password.'+ err.message)
+>>>>>>> 6b5dd5b (Frontend auth successfully)
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 to-blue-100 flex items-center justify-center">
       <div className="bg-white rounded-2xl shadow-lg p-10 w-full max-w-md">
         
         {/* Logo */}
