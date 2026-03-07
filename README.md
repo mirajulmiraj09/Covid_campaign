@@ -104,3 +104,7 @@ Frontend runs at: `http://localhost:5173`
 - SQLite database is used for development
 - CORS is configured to allow requests from `http://localhost:5173`
 - JWT access token expires in 1 hour, refresh token in 7 days
+
+## Contributors
+- JimIITDU (official university account), JimIIT (personal account - same developer)
+- MD. MERAJUL ISLAM (official University account)
