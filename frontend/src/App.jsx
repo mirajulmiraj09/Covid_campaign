@@ -16,6 +16,7 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import ManageDoctors from './pages/admin/ManageDoctors'
 import AdminCampaigns from './pages/admin/AdminCampaigns'
 import CampaignDetail from './pages/admin/CampaignDetail'
+import DoctorCampaignDetail from './pages/doctor/CampaignDetail'
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
       {/* Doctor */}
       <Route path="/doctor/dashboard" element={<ProtectedRoute allowedRoles={['doctor']}><DoctorDashboard /></ProtectedRoute>} />
       <Route path="/doctor/campaigns" element={<ProtectedRoute allowedRoles={['doctor']}><ManageCampaigns /></ProtectedRoute>} />
+      <Route path="/doctor/campaigns/:campaignId" element={<ProtectedRoute allowedRoles={['doctor']}><DoctorCampaignDetail /></ProtectedRoute>} />
       <Route path="/doctor/profile" element={<ProtectedRoute allowedRoles={['doctor']}><ProfilePage /></ProtectedRoute>} />
       <Route path="/doctor/campaigns/:campaignId/vaccines" element={<ProtectedRoute allowedRoles={['doctor']}><ManageVaccines /></ProtectedRoute>} />
       <Route path="/doctor/vaccinate/:bookingId" element={<ProtectedRoute allowedRoles={['doctor']}><VaccinatePage /></ProtectedRoute>} />

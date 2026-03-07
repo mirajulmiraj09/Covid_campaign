@@ -63,11 +63,18 @@ export default function ManageCampaigns() {
                   <span>💊 {c.vaccine_count} vaccines</span>
                   <span>👨‍⚕️ {c.assigned_doctor_count || 0} doctors</span>
                 </div>
-                <button
-                  onClick={() => navigate(`/doctor/campaigns/${c.campaign_id}/vaccines`)}
-                  className="mt-4 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm hover:bg-blue-100 w-full">
-                  Manage Vaccines →
-                </button>
+                <div className="flex gap-2 mt-4">
+                  <button
+                    onClick={() => navigate(`/doctor/campaigns/${c.campaign_id}`)}
+                    className="flex-1 px-4 py-2 bg-gray-50 text-gray-700 rounded-lg text-sm hover:bg-gray-100 border border-gray-200">
+                    View Details →
+                  </button>
+                  <button
+                    onClick={() => navigate(`/doctor/campaigns/${c.campaign_id}/vaccines`)}
+                    className="flex-1 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm hover:bg-blue-100">
+                    Manage Vaccines →
+                  </button>
+                </div>
               </div>
             ))}
           </div>

@@ -55,7 +55,7 @@ class CampaignSerializer(serializers.ModelSerializer):
         model = Campaign
         fields = [
             'campaign_id', 'title', 'description', 'start_date', 'end_date', 
-            'is_active', 'created_by', 'created_by_name', 
+            'is_active', 'visibility', 'created_by', 'created_by_name', 
             'created_at', 'vaccines', 'vaccine_count', 'assigned_doctors_list'
         ]
         read_only_fields = ['campaign_id', 'created_by', 'created_at']
@@ -91,7 +91,7 @@ class CampaignSerializer(serializers.ModelSerializer):
 class CampaignCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Campaign
-        fields = ['title', 'description', 'start_date', 'end_date', 'is_active']
+        fields = ['title', 'description', 'start_date', 'end_date', 'is_active', 'visibility']
     
     def validate(self, attrs):
         if attrs['start_date'] > attrs['end_date']:
@@ -116,7 +116,7 @@ class CampaignListSerializer(serializers.ModelSerializer):
         model = Campaign
         fields = [
             'campaign_id', 'title', 'description', 'start_date', 
-            'end_date', 'is_active', 'vaccine_count', 'assigned_doctor_count',
+            'end_date', 'is_active', 'visibility', 'vaccine_count', 'assigned_doctor_count',
             'assigned_doctors_list'
         ]
     

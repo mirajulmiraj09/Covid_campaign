@@ -11,6 +11,8 @@ export default function CampaignDetail() {
 
   const [campaign, setCampaign] = useState(null)
   const [patients, setPatients] = useState([])
+  const [patientCounts, setPatientCounts] = useState({ today: 0, previous: 0, upcoming: 0, vaccinated: 0 })
+  const [patientCategory, setPatientCategory] = useState('all')
   const [allDoctors, setAllDoctors] = useState([])
   const [selectedDoctors, setSelectedDoctors] = useState([])
   const [loading, setLoading] = useState(true)
@@ -25,27 +27,53 @@ export default function CampaignDetail() {
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [campRes, patientsRes, docRes] = await Promise.all([
-          api.get(`campaigns/${campaignId}/`),
-          api.get(`campaigns/${campaignId}/patients/`),
-          api.get('doctors/'),
-        ])
+        const campRes = await api.get(`campaigns/${campaignId}/`)
         const campData = campRes.data.data
         setCampaign(campData)
-        setPatients(patientsRes.data.data || [])
-        setAllDoctors(docRes.data.data || docRes.data || [])
-
-        // Pre-select currently assigned doctors
         const assignedIds = (campData.assigned_doctors_list || []).map((d) => d.id)
         setSelectedDoctors(assignedIds)
       } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
+        console.error('Campaign fetch error:', err)
       }
+      try {
+        const patientsRes = await api.get(`campaigns/${campaignId}/patients/`)
+        setPatients(patientsRes.data.data || [])
+        setPatientCounts({
+          today: patientsRes.data.today_count || 0,
+          previous: patientsRes.data.previous_count || 0,
+          upcoming: patientsRes.data.upcoming_count || 0,
+          vaccinated: patientsRes.data.vaccinated_count || 0,
+        })
+      } catch (err) {
+        console.error('Patients fetch error:', err)
+      }
+      try {
+        const docRes = await api.get('doctors/')
+        setAllDoctors(docRes.data.data || docRes.data || [])
+      } catch (err) {
+        console.error('Doctors fetch error:', err)
+      }
+      setLoading(false)
     }
     fetchAll()
   }, [campaignId])
+
+  const fetchPatients = async (category) => {
+    try {
+      const url = category === 'all'
+        ? `campaigns/${campaignId}/patients/`
+        : `campaigns/${campaignId}/patients/?category=${category}`
+      const res = await api.get(url)
+      setPatients(res.data.data || [])
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const handleCategoryChange = (cat) => {
+    setPatientCategory(cat)
+    fetchPatients(cat)
+  }
 
   const toggleDoctor = (docId) => {
     setSelectedDoctors((prev) =>
@@ -63,17 +91,27 @@ export default function CampaignDetail() {
       })
       setSuccess('Doctors assigned successfully!')
       // Refresh campaign data
-      const [campRes, patientsRes, docRes] = await Promise.all([
-        api.get(`campaigns/${campaignId}/`),
-        api.get(`campaigns/${campaignId}/patients/`),
-        api.get('doctors/'),
-      ])
-      const campData = campRes.data.data
-      setCampaign(campData)
-      setPatients(patientsRes.data.data || [])
-      setAllDoctors(docRes.data.data || docRes.data || [])
-      const assignedIds = (campData.assigned_doctors_list || []).map((d) => d.id)
-      setSelectedDoctors(assignedIds)
+      try {
+        const campRes = await api.get(`campaigns/${campaignId}/`)
+        const campData = campRes.data.data
+        setCampaign(campData)
+        const assignedIds = (campData.assigned_doctors_list || []).map((d) => d.id)
+        setSelectedDoctors(assignedIds)
+      } catch { /* ignore */ }
+      try {
+        const patientsRes = await api.get(`campaigns/${campaignId}/patients/`)
+        setPatients(patientsRes.data.data || [])
+        setPatientCounts({
+          today: patientsRes.data.today_count || 0,
+          previous: patientsRes.data.previous_count || 0,
+          upcoming: patientsRes.data.upcoming_count || 0,
+          vaccinated: patientsRes.data.vaccinated_count || 0,
+        })
+      } catch { /* ignore */ }
+      try {
+        const docRes = await api.get('doctors/')
+        setAllDoctors(docRes.data.data || docRes.data || [])
+      } catch { /* ignore */ }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to assign doctors.')
     } finally {
@@ -84,6 +122,8 @@ export default function CampaignDetail() {
   const getStatusColor = (status) => {
     if (status === 'Completed') return 'bg-green-100 text-green-700'
     if (status === 'Cancelled') return 'bg-red-100 text-red-700'
+    if (status === 'Approved') return 'bg-blue-100 text-blue-700'
+    if (status === 'Rejected') return 'bg-red-100 text-red-600'
     return 'bg-yellow-100 text-yellow-700'
   }
 
@@ -232,6 +272,29 @@ export default function CampaignDetail() {
               <h3 className="text-lg font-semibold text-gray-800 mb-4">
                 Patient Bookings ({patients.length})
               </h3>
+
+              {/* Category Tabs */}
+              <div className="flex gap-2 mb-4 flex-wrap">
+                {[
+                  { key: 'all', label: 'All' },
+                  { key: 'today', label: `Today (${patientCounts.today})` },
+                  { key: 'previous', label: `Previous (${patientCounts.previous})` },
+                  { key: 'upcoming', label: `Upcoming (${patientCounts.upcoming})` },
+                  { key: 'vaccinated', label: `Vaccinated (${patientCounts.vaccinated})` },
+                ].map(tab => (
+                  <button
+                    key={tab.key}
+                    onClick={() => handleCategoryChange(tab.key)}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      patientCategory === tab.key
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
 
               {patients.length === 0 ? (
                 <p className="text-gray-500 text-center py-6">No bookings for this campaign yet.</p>

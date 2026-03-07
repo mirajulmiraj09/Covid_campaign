@@ -74,13 +74,23 @@ class BookingCreateSerializer(serializers.Serializer):
         patient = self.context['request'].user
         scheduled_date = validated_data['scheduled_date']
 
-        # Create booking for dose 1 only
+        # Determine dose number based on existing completed bookings
+        completed_doses = Booking.objects.filter(
+            patient=patient,
+            vaccine=vaccine,
+            status='Completed'
+        ).count()
+        dose_number = completed_doses + 1
+
+        # Auto-approve if the patient has a completed previous dose for this vaccine
+        initial_status = 'Approved' if completed_doses > 0 else 'Pending'
+
         booking = Booking.objects.create(
             patient=patient,
             vaccine=vaccine,
-            dose_number=1,
+            dose_number=dose_number,
             scheduled_date=scheduled_date,
-            status='Pending'
+            status=initial_status
         )
 
         # Decrease stock by 1 per patient booking
@@ -143,8 +153,8 @@ class VaccinateSerializer(serializers.Serializer):
     def validate_booking_id(self, value):
         try:
             booking = Booking.objects.get(booking_id=value)
-            if booking.status != 'Pending':
-                raise serializers.ValidationError("This booking is not pending.")
+            if booking.status != 'Approved':
+                raise serializers.ValidationError("This booking is not approved. Only approved bookings can be vaccinated.")
         except Booking.DoesNotExist:
             raise serializers.ValidationError("Booking not found.")
         return value

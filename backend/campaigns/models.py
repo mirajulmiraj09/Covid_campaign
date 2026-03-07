@@ -2,12 +2,22 @@ from django.db import models
 from django.conf import settings
  
 class Campaign(models.Model):
+    VISIBILITY_CHOICES = [
+        ('public', 'Public'),
+        ('doctors_only', 'Doctors & Admin Only'),
+    ]
+
     campaign_id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=200)
     description = models.TextField()
     start_date = models.DateField()
     end_date = models.DateField()
     is_active = models.BooleanField(default=True)
+    visibility = models.CharField(
+        max_length=20,
+        choices=VISIBILITY_CHOICES,
+        default='public',
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

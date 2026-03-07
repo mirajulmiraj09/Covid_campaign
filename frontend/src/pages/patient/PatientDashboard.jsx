@@ -63,6 +63,8 @@ export default function PatientDashboard() {
 
   const getStatusColor = (status) => {
     if (status === 'Completed') return 'bg-green-100 text-green-700'
+    if (status === 'Approved') return 'bg-blue-100 text-blue-700'
+    if (status === 'Rejected') return 'bg-red-100 text-red-600'
     if (status === 'Cancelled') return 'bg-red-100 text-red-700'
     return 'bg-yellow-100 text-yellow-700'
   }
@@ -76,7 +78,7 @@ export default function PatientDashboard() {
         <p className="text-gray-500 mb-8">Welcome back, {user?.email}</p>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-10">
           <div className="bg-white rounded-xl p-6 shadow-sm text-center">
             <div className="text-4xl font-bold text-blue-600">{bookings.length}</div>
             <div className="text-gray-500 mt-1">Total Bookings</div>
@@ -92,6 +94,12 @@ export default function PatientDashboard() {
               {bookings.filter(b => b.status === 'Pending').length}
             </div>
             <div className="text-gray-500 mt-1">Pending</div>
+          </div>
+          <div className="bg-white rounded-xl p-6 shadow-sm text-center">
+            <div className="text-4xl font-bold text-blue-500">
+              {bookings.filter(b => b.status === 'Approved').length}
+            </div>
+            <div className="text-gray-500 mt-1">Approved</div>
           </div>
           <div
             onClick={handleDownloadCertificate}
@@ -138,7 +146,7 @@ export default function PatientDashboard() {
                       </span>
                     </td>
                     <td className="py-3">
-                      {booking.status === 'Pending' && (
+                      {(booking.status === 'Pending' || booking.status === 'Approved') && (
                         <button
                           onClick={() => handleCancel(booking.booking_id)}
                           className="text-red-500 text-sm hover:underline"
