@@ -8,8 +8,9 @@ export default function PatientDashboard() {
   const navigate = useNavigate()
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState(null)
 
-   useEffect(() => {
+useEffect(() => {
   if (user?.role !== 'Patient') {
     navigate('/login')
   }
@@ -17,12 +18,12 @@ export default function PatientDashboard() {
 
 useEffect(() => {
   fetchBookings()
+  fetchProfile()
 }, [])
 
-  const fetchBookings = async () => {
+const fetchBookings = async () => {
   try {
     const res = await api.get('bookings/my-bookings/')
-    console.log('Bookings response:', res.data)
     setBookings(res.data || [])
   } catch (err) {
     console.error(err)
@@ -31,10 +32,19 @@ useEffect(() => {
   }
 }
 
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
+const fetchProfile = async () => {
+  try {
+    const res = await api.get('profiles/me/')
+    setProfile(res.data.data)
+  } catch (err) {
+    console.error(err)
   }
+}
+
+const handleLogout = () => {
+  logout()
+  navigate('/login')
+}
 
   const getStatusColor = (status) => {
     if (status === 'Completed') return 'bg-green-100 text-green-700'
@@ -49,6 +59,24 @@ useEffect(() => {
     fetchBookings()
   } catch (err) {
     console.error(err)
+  }
+}
+
+const handleCertificate = async () => {
+  try {
+    const res = await api.get(`certificates/${profile?.nid}/`, {
+      responseType: 'blob'
+    })
+    const url = window.URL.createObjectURL(new Blob([res.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', 'vaccination_certificate.pdf')
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  } catch (err) {
+    console.error('Certificate error:', err)
+    alert('Certificate not available yet. Complete all doses first!')
   }
 }
 
@@ -109,6 +137,18 @@ useEffect(() => {
           </div>
         </div>
 
+        {/* Certificate Download */}
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-8 flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800">Vaccination Certificate</h3>
+            <p className="text-gray-500 text-sm">Download your certificate after completing all doses</p>
+          </div>
+          <button
+            onClick={() => handleCertificate()}
+            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+            📄 Download Certificate
+          </button>
+        </div>
         {/* Bookings Table */}
         <div className="bg-white rounded-xl shadow-sm p-6">
           <h3 className="text-xl font-semibold text-gray-800 mb-4">My Bookings</h3>
@@ -159,7 +199,6 @@ useEffect(() => {
             </table>
           )}
         </div>
-
       </div>
     </div>
   )
