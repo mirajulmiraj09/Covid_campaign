@@ -9,6 +9,7 @@ import ManageCampaigns from './pages/doctor/ManageCampaigns'
 import ProfilePage from './pages/ProfilePage'
 import ManageVaccines from './pages/doctor/ManageVaccines'
 import VaccinatePage from './pages/doctor/VaccinatePage'
+import CampaignReviews from './pages/patient/CampaignReviews'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
       <Route path="/doctor/profile" element={<ProfilePage />} />
       <Route path="/doctor/campaigns/:campaignId/vaccines" element={<ManageVaccines />} />
       <Route path="/doctor/vaccinate/:bookingId" element={<VaccinatePage />} />
+      <Route path="/patient/reviews" element={<CampaignReviews />} />
     </Routes>
   )
 }
