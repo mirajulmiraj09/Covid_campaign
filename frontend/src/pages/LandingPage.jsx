@@ -1,25 +1,12 @@
 import { useNavigate } from 'react-router-dom'
+import Navbar from '../components/Navbar'
 
 export default function LandingPage() {
   const navigate = useNavigate()
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 to-blue-100">
-
-      {/* Navbar */}
-      <nav className="bg-white shadow-sm px-8 py-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-blue-600">💉 VacciCare</h1>
-        <div className="flex gap-4">
-          <button onClick={() => navigate('/login')}
-            className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50">
-            Login
-          </button>
-          <button onClick={() => navigate('/register')}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            Register
-          </button>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Hero */}
       <div className="flex flex-col items-center justify-center text-center px-4 py-24">

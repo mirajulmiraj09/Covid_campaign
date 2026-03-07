@@ -108,7 +108,7 @@ class UserSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
     class Meta:
         model = User 
-        fields = ['user_id', 'email', 'is_active', 'created_at', 'role']
+        fields = ['user_id', 'email', 'is_active', 'is_staff', 'is_superuser', 'created_at', 'role']
     
     def get_role(self, obj):   
         user_role = obj.userrole_set.first()
@@ -191,13 +191,14 @@ class PatientProfileSerializer(serializers.ModelSerializer):
 class DoctorProfileSerializer(serializers.ModelSerializer):
     """Doctor Profile Serializer"""
     email = serializers.EmailField(source='user.email', read_only=True)
+    user_id = serializers.IntegerField(source='user.pk', read_only=True)
     role = serializers.SerializerMethodField()
     profile_pic_url = serializers.ImageField(required=False, allow_null=True)
     
     class Meta:
         model = Profile
         fields = [
-            'profile_id', 'email', 'first_name', 'last_name', 
+            'profile_id', 'user_id', 'email', 'first_name', 'last_name', 
             'nid', 'dob', 'gender', 'phone', 'address', 
             'specialization', 'profile_pic_url', 'role'
         ]

@@ -1,20 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import Navbar from '../../components/Navbar'
 import api from '../../services/api'
 
 export default function DoctorDashboard() {
-  const { user, logout } = useAuth()
+  const { user, isDoctor } = useAuth()
   const navigate = useNavigate()
   const [appointments, setAppointments] = useState([])
   const [campaigns, setCampaigns] = useState([])
   const [loading, setLoading] = useState(true)
 
-      useEffect(() => {
-      if (user?.role !== 'Doctor') {
-        navigate('/login')
-      }
-    }, [user])
+  useEffect(() => {
+    if (!isDoctor) navigate('/login')
+  }, [isDoctor])
 
   useEffect(() => {
     fetchAppointments()
@@ -41,11 +40,6 @@ export default function DoctorDashboard() {
     }
   }
 
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
-
   const getStatusColor = (status) => {
     if (status === 'Completed') return 'bg-green-100 text-green-700'
     if (status === 'Cancelled') return 'bg-red-100 text-red-700'
@@ -54,26 +48,7 @@ export default function DoctorDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-
-      {/* Navbar */}
-      <nav className="bg-white shadow-sm px-8 py-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-blue-600">💉 VacciCare</h1>
-        <div className="flex items-center gap-4">
-          <span className="text-gray-600">👨‍⚕️ {user?.email}</span>
-          <button onClick={() => navigate('/doctor/campaigns')}
-            className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50">
-            Campaigns
-          </button>
-          <button onClick={() => navigate('/doctor/profile')}
-            className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50">
-            Profile
-          </button>
-          <button onClick={handleLogout}
-            className="px-4 py-2 text-red-500 border border-red-500 rounded-lg hover:bg-red-50">
-            Logout
-          </button>
-        </div>
-      </nav>
+      <Navbar />
 
       <div className="max-w-6xl mx-auto px-8 py-10">
 

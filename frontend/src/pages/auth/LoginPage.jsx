@@ -18,22 +18,18 @@ export default function LoginPage() {
 
     try {
       const res = await api.post('auth/login/', { email, password })
-      console.log('Login response:', res.data)  // Debug log
       const { tokens, user } = res.data.data
       login(user, tokens)
 
-      if (user.role === 'Doctor') {
+      if (user.is_superuser || user.is_staff) {
+        navigate('/admin/dashboard')
+      } else if (user.role === 'Doctor') {
         navigate('/doctor/dashboard')
       } else {
         navigate('/patient/dashboard')
       }
     } catch (err) {
-<<<<<<< HEAD
-        console.error('Login error:', err)  // Debug log
       setError('Invalid email or password.')
-=======
-      setError('Invalid email or password.'+ err.message)
->>>>>>> 6b5dd5b (Frontend auth successfully)
     } finally {
       setLoading(false)
     }
