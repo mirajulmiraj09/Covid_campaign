@@ -11,6 +11,7 @@ export default function BookAppointment() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [selectedCampaignData, setSelectedCampaignData] = useState(null)
 
   useEffect(() => {
     fetchCampaigns()
@@ -34,13 +35,19 @@ export default function BookAppointment() {
     }
   }
 
-  const handleCampaignChange = (e) => {
-    const id = e.target.value
-    setSelectedCampaign(id)
-    setVaccines([])
-    setFormData(prev => ({ ...prev, vaccine_id: '' }))
-    if (id) fetchVaccines(id)
+  
+
+const handleCampaignChange = (e) => {
+  const id = e.target.value
+  setSelectedCampaign(id)
+  setVaccines([])
+  setFormData(prev => ({ ...prev, vaccine_id: '' }))
+  if (id) {
+    fetchVaccines(id)
+    const campaign = campaigns.find(c => c.campaign_id === parseInt(id))
+    setSelectedCampaignData(campaign)
   }
+}
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -112,10 +119,14 @@ export default function BookAppointment() {
           {/* Date */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Preferred Date</label>
-            <input type="date"
+            <input 
+              type="date"
+              min={selectedCampaignData?.start_date}
+              max={selectedCampaignData?.end_date}
               value={formData.scheduled_date}
               onChange={(e) => setFormData(prev => ({ ...prev, scheduled_date: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500" 
+            />
           </div>
 
           <button onClick={handleSubmit} disabled={loading}
