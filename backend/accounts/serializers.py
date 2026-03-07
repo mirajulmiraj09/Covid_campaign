@@ -76,7 +76,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
         Profile.objects.create(user=user, **profile_data)
         
         # Assign role
-        role_name = Role.DOCTOR if role_type == 'doctor' else Role.PATIENT
+        role_name = Role.DOCTOR if role_type.lower() == 'doctor' else Role.PATIENT
         role, _ = Role.objects.get_or_create(role_name=role_name)
         UserRole.objects.create(user=user, role=role)
         
