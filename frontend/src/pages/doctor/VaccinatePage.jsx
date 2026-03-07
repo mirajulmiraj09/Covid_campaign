@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import Navbar from '../../components/Navbar'
 import api from '../../services/api'
 
 export default function VaccinatePage() {
@@ -31,13 +32,7 @@ export default function VaccinatePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm px-8 py-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-blue-600">💉 VacciCare</h1>
-        <button onClick={() => navigate('/doctor/dashboard')}
-          className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50">
-          ← Back to Dashboard
-        </button>
-      </nav>
+      <Navbar />
 
       <div className="max-w-2xl mx-auto px-8 py-10">
         <h2 className="text-3xl font-bold text-gray-800 mb-2">Record Vaccination</h2>

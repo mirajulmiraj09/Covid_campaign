@@ -1,9 +1,11 @@
 # campaigns/views.py
 from rest_framework import generics, status
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import api_view, permission_classes
 from django.shortcuts import get_object_or_404
+from django.contrib.auth import get_user_model
 from campaigns.models import Campaign, Vaccine
 from campaigns.serializers import (
     CampaignSerializer, 
@@ -12,7 +14,10 @@ from campaigns.serializers import (
     VaccineSerializer,
     VaccineCreateSerializer
 )
-from campaigns.permissions import IsDoctor
+from campaigns.permissions import IsDoctor, IsSuperuserOrStaff
+from accounts.models import Role
+
+User = get_user_model()
 
 
 class CampaignListCreateView(generics.ListCreateAPIView):
@@ -25,7 +30,8 @@ class CampaignListCreateView(generics.ListCreateAPIView):
     
     def get_permissions(self):
         if self.request.method == 'POST':
-            return [IsDoctor()]
+            # Doctors, staff, and superusers can create campaigns
+            return [IsAuthenticated()]
         return [IsAuthenticated()]
     
     def get_queryset(self):
@@ -40,6 +46,11 @@ class CampaignListCreateView(generics.ListCreateAPIView):
         return queryset.order_by('-created_at')
     
     def create(self, request, *args, **kwargs):
+        user = request.user
+        # Only doctors, staff, or superusers can create
+        if not (user.is_staff or user.is_superuser or user.roles.filter(role_name=Role.DOCTOR).exists()):
+            return Response({'status': 'error', 'message': 'Permission denied.'}, status=status.HTTP_403_FORBIDDEN)
+        
         serializer = self.get_serializer(data=request.data)
         
         if serializer.is_valid():
@@ -161,3 +172,81 @@ class VaccineUpdateDeleteView(generics.RetrieveUpdateDestroyAPIView):
             'status': 'success',
             'message': 'Vaccine removed successfully (soft delete)'
         }, status=status.HTTP_200_OK)
+
+
+class AssignDoctorsView(APIView):
+    """POST: Assign doctors to a campaign (staff/superuser only)"""
+    permission_classes = [IsSuperuserOrStaff]
+
+    def post(self, request, campaign_id):
+        campaign = get_object_or_404(Campaign, campaign_id=campaign_id)
+        doctor_ids = request.data.get('doctor_ids', [])
+
+        if not isinstance(doctor_ids, list):
+            return Response(
+                {'status': 'error', 'message': 'doctor_ids must be a list.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        doctors = User.objects.filter(pk__in=doctor_ids)
+        valid_doctors = [
+            d for d in doctors
+            if d.is_superuser or d.roles.filter(role_name=Role.DOCTOR).exists()
+        ]
+
+        campaign.assigned_doctors.set(valid_doctors)
+
+        serializer = CampaignSerializer(campaign)
+        return Response(
+            {'status': 'success', 'message': 'Doctors assigned.', 'data': serializer.data},
+            status=status.HTTP_200_OK,
+        )
+
+
+class CampaignDetailView(APIView):
+    """GET: Full campaign detail with assigned doctors"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, campaign_id):
+        campaign = get_object_or_404(Campaign, campaign_id=campaign_id)
+        serializer = CampaignSerializer(campaign)
+        return Response(
+            {'status': 'success', 'data': serializer.data},
+            status=status.HTTP_200_OK,
+        )
+
+
+class CampaignPatientsView(APIView):
+    """GET: List patients booked for a campaign (assigned doctor, creator, or superuser)"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, campaign_id):
+        campaign = get_object_or_404(Campaign, campaign_id=campaign_id)
+        user = request.user
+
+        # Only assigned doctors, campaign creator, staff, or superuser
+        allowed = (
+            user.is_superuser
+            or user.is_staff
+            or campaign.created_by_id == user.pk
+            or campaign.assigned_doctors.filter(pk=user.pk).exists()
+        )
+        if not allowed:
+            return Response(
+                {'status': 'error', 'message': 'Permission denied.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        from operations.models import Booking
+        from operations.serializers import BookingSerializer
+
+        bookings = (
+            Booking.objects.filter(vaccine__campaign_id=campaign.campaign_id)
+            .select_related('patient__profile', 'vaccine')
+            .order_by('-scheduled_date')
+        )
+        serializer = BookingSerializer(bookings, many=True, context={'request': request})
+        return Response(
+            {'status': 'success', 'count': len(serializer.data), 'data': serializer.data},
+            status=status.HTTP_200_OK,
+        )

@@ -14,6 +14,11 @@ class Campaign(models.Model):
         null=True,
         related_name='created_campaigns'
     )
+    assigned_doctors = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name='assigned_campaigns',
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:

@@ -1,176 +1,132 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Navbar from '../../components/Navbar'
 import api from '../../services/api'
 
 export default function CampaignReviews() {
   const navigate = useNavigate()
   const [campaigns, setCampaigns] = useState([])
-  const [reviews, setReviews] = useState([])
-  const [myReviews, setMyReviews] = useState([])
-  const [selectedCampaign, setSelectedCampaign] = useState('')
-  const [formData, setFormData] = useState({ campaign: '', rating: 5, comment: '' })
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchCampaigns()
-    fetchMyReviews()
   }, [])
 
   const fetchCampaigns = async () => {
     try {
       const res = await api.get('campaigns/')
-      setCampaigns(res.data.data || res.data || [])
+      const list = res.data.data || res.data || []
+
+      // Fetch review stats for each campaign in parallel
+      const enriched = await Promise.all(
+        list.map(async (c) => {
+          try {
+            const revRes = await api.get(`campaigns/${c.campaign_id}/reviews/`)
+            return {
+              ...c,
+              review_count: revRes.data.count || 0,
+              average_rating: revRes.data.average_rating || 0,
+            }
+          } catch {
+            return { ...c, review_count: 0, average_rating: 0 }
+          }
+        })
+      )
+      setCampaigns(enriched)
     } catch (err) {
       console.error(err)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const fetchMyReviews = async () => {
-    try {
-      const res = await api.get('reviews/my-reviews/')
-      setMyReviews(res.data.data || res.data || [])
-    } catch (err) {
-      console.error(err)
-    }
+  const renderStars = (avg) => {
+    const full = Math.round(avg)
+    return (
+      <span className="inline-flex gap-0.5">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <span key={i} className={i <= full ? 'text-yellow-400' : 'text-gray-300'}>★</span>
+        ))}
+      </span>
+    )
   }
 
-  const fetchCampaignReviews = async (campaignId) => {
-    try {
-      const res = await api.get(`campaigns/${campaignId}/reviews/`)
-      setReviews(res.data.data || res.data || [])
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
-  const handleCampaignChange = (e) => {
-    const id = e.target.value
-    setSelectedCampaign(id)
-    setFormData(prev => ({ ...prev, campaign: id }))
-    if (id) fetchCampaignReviews(id)
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setSuccess('')
-    try {
-      await api.post('reviews/', formData)
-      setSuccess('Review submitted successfully!')
-      fetchMyReviews()
-      if (selectedCampaign) fetchCampaignReviews(selectedCampaign)
-      setFormData(prev => ({ ...prev, comment: '', rating: 5 }))
-    } catch (err) {
-      setError(err.response?.data?.detail || JSON.stringify(err.response?.data))
-    }
-  }
-
-  const renderStars = (rating) => {
-    return '⭐'.repeat(rating)
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="flex items-center justify-center h-96">
+          <div className="text-gray-500 text-lg">Loading campaigns...</div>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm px-8 py-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-blue-600">💉 VacciCare</h1>
-        <button onClick={() => navigate('/patient/dashboard')}
-          className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50">
-          ← Back to Dashboard
-        </button>
-      </nav>
+      <Navbar />
 
-      <div className="max-w-4xl mx-auto px-8 py-10">
+      <div className="max-w-7xl mx-auto px-8 py-10">
         <h2 className="text-3xl font-bold text-gray-800 mb-2">Campaign Reviews</h2>
-        <p className="text-gray-500 mb-8">Share your experience with vaccination campaigns</p>
+        <p className="text-gray-500 mb-8">Browse campaigns and share your vaccination experience</p>
 
-        {error && <div className="bg-red-50 text-red-500 px-4 py-3 rounded-lg mb-6">{error}</div>}
-        {success && <div className="bg-green-50 text-green-600 px-4 py-3 rounded-lg mb-6">{success}</div>}
-
-        {/* Write Review */}
-        <div className="bg-white rounded-xl shadow-sm p-8 mb-8">
-          <h3 className="text-xl font-semibold text-gray-800 mb-6">Write a Review</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Select Campaign</label>
-              <select onChange={handleCampaignChange} value={selectedCampaign}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">-- Select Campaign --</option>
-                {campaigns.map(c => (
-                  <option key={c.campaign_id} value={c.campaign_id}>{c.title}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
-              <select value={formData.rating}
-                onChange={(e) => setFormData(prev => ({ ...prev, rating: parseInt(e.target.value) }))}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value={5}>⭐⭐⭐⭐⭐ — Excellent</option>
-                <option value={4}>⭐⭐⭐⭐ — Good</option>
-                <option value={3}>⭐⭐⭐ — Average</option>
-                <option value={2}>⭐⭐ — Poor</option>
-                <option value={1}>⭐ — Very Poor</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Comment</label>
-              <textarea value={formData.comment} rows={4}
-                onChange={(e) => setFormData(prev => ({ ...prev, comment: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Share your experience..." />
-            </div>
-            <button onClick={handleSubmit}
-              className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700">
-              Submit Review
-            </button>
+        {campaigns.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-gray-400 text-lg">No campaigns available yet.</p>
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {campaigns.map((c) => (
+              <div
+                key={c.campaign_id}
+                onClick={() => navigate(`/patient/reviews/${c.campaign_id}`)}
+                className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
+              >
+                {/* Color banner */}
+                <div className={`h-2 ${c.is_active ? 'bg-green-500' : 'bg-gray-300'}`} />
 
-        {/* Campaign Reviews */}
-        {selectedCampaign && (
-          <div className="bg-white rounded-xl shadow-sm p-8 mb-8">
-            <h3 className="text-xl font-semibold text-gray-800 mb-6">Reviews for this Campaign</h3>
-            {reviews.length === 0 ? (
-              <p className="text-gray-500 text-center py-4">No reviews yet for this campaign!</p>
-            ) : (
-              <div className="space-y-4">
-                {reviews.map(review => (
-                  <div key={review.review_id} className="border border-gray-100 rounded-xl p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="font-medium text-gray-800">{review.patient_email}</span>
-                      <span>{renderStars(review.rating)}</span>
-                    </div>
-                    <p className="text-gray-600">{review.comment}</p>
-                    <p className="text-gray-400 text-sm mt-2">{new Date(review.created_at).toLocaleDateString()}</p>
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-gray-800 leading-tight">{c.title}</h3>
+                    <span
+                      className={`shrink-0 ml-2 px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        c.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                      }`}
+                    >
+                      {c.is_active ? 'Active' : 'Ended'}
+                    </span>
                   </div>
-                ))}
+
+                  {c.description && (
+                    <p className="text-gray-500 text-sm mb-4 line-clamp-2">{c.description}</p>
+                  )}
+
+                  <div className="flex items-center gap-2 mb-3">
+                    {renderStars(c.average_rating)}
+                    <span className="text-sm text-gray-500">
+                      {c.average_rating > 0 ? c.average_rating.toFixed(1) : 'No ratings'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm text-gray-400">
+                    <span>{c.review_count} {c.review_count === 1 ? 'review' : 'reviews'}</span>
+                    <span>{c.start_date} — {c.end_date}</span>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between">
+                    <div className="flex gap-3 text-xs text-gray-500">
+                      <span>💉 {c.vaccine_count} vaccines</span>
+                      {c.assigned_doctor_count > 0 && (
+                        <span>👨‍⚕️ {c.assigned_doctor_count} doctors</span>
+                      )}
+                    </div>
+                    <span className="text-blue-600 text-sm font-medium">View Details →</span>
+                  </div>
+                </div>
               </div>
-            )}
+            ))}
           </div>
         )}
-
-        {/* My Reviews */}
-        <div className="bg-white rounded-xl shadow-sm p-8">
-          <h3 className="text-xl font-semibold text-gray-800 mb-6">My Reviews</h3>
-          {myReviews.length === 0 ? (
-            <p className="text-gray-500 text-center py-4">You haven't written any reviews yet!</p>
-          ) : (
-            <div className="space-y-4">
-              {myReviews.map(review => (
-                <div key={review.review_id} className="border border-gray-100 rounded-xl p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium text-gray-800">{review.campaign_title}</span>
-                    <span>{renderStars(review.rating)}</span>
-                  </div>
-                  <p className="text-gray-600">{review.comment}</p>
-                  <p className="text-gray-400 text-sm mt-2">{new Date(review.created_at).toLocaleDateString()}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
       </div>
     </div>
   )

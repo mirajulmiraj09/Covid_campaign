@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import Navbar from '../../components/Navbar'
 import api from '../../services/api'
 
 export default function ManageVaccines() {
@@ -57,13 +58,7 @@ export default function ManageVaccines() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm px-8 py-4 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-blue-600">💉 VacciCare</h1>
-        <button onClick={() => navigate('/doctor/campaigns')}
-          className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50">
-          ← Back to Campaigns
-        </button>
-      </nav>
+      <Navbar />
 
       <div className="max-w-4xl mx-auto px-8 py-10">
         <div className="flex justify-between items-center mb-8">

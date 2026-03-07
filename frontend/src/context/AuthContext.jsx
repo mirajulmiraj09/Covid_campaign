@@ -21,8 +21,12 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  const isAdmin = user?.is_superuser || user?.is_staff || false
+  const isDoctor = user?.role === 'Doctor'
+  const isPatient = user?.role === 'Patient'
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, isAdmin, isDoctor, isPatient }}>
       {children}
     </AuthContext.Provider>
   )

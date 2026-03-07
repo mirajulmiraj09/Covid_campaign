@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import Navbar from '../../components/Navbar'
 import api from '../../services/api'
 
 export default function PatientDashboard() {
-  const { user, logout } = useAuth()
+  const { user, isPatient } = useAuth()
   const navigate = useNavigate()
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState(null)
 
-useEffect(() => {
+   useEffect(() => {
   if (user?.role !== 'Patient') {
     navigate('/login')
   }
@@ -18,12 +19,12 @@ useEffect(() => {
 
 useEffect(() => {
   fetchBookings()
-  fetchProfile()
 }, [])
 
-const fetchBookings = async () => {
+  const fetchBookings = async () => {
   try {
     const res = await api.get('bookings/my-bookings/')
+    console.log('Bookings response:', res.data)
     setBookings(res.data || [])
   } catch (err) {
     console.error(err)
@@ -32,19 +33,10 @@ const fetchBookings = async () => {
   }
 }
 
-const fetchProfile = async () => {
-  try {
-    const res = await api.get('profiles/me/')
-    setProfile(res.data.data)
-  } catch (err) {
-    console.error(err)
+  const handleLogout = () => {
+    logout()
+    navigate('/login')
   }
-}
-
-const handleLogout = () => {
-  logout()
-  navigate('/login')
-}
 
   const getStatusColor = (status) => {
     if (status === 'Completed') return 'bg-green-100 text-green-700'
@@ -52,33 +44,17 @@ const handleLogout = () => {
     return 'bg-yellow-100 text-yellow-700'
   }
 
-  const handleCancel = async (bookingId) => {
-  if (!window.confirm('Are you sure you want to cancel this appointment?')) return
-  try {
-    await api.post(`bookings/${bookingId}/cancel/`)
-    fetchBookings()
-  } catch (err) {
-    console.error(err)
-  }
-}
-
-const handleCertificate = async () => {
-  try {
-    const res = await api.get(`certificates/${profile?.nid}/`, {
-      responseType: 'blob'
-    })
-    const url = window.URL.createObjectURL(new Blob([res.data]))
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', 'vaccination_certificate.pdf')
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-  } catch (err) {
-    console.error('Certificate error:', err)
-    alert('Certificate not available yet. Complete all doses first!')
-  }
-}
+  const handleDownloadCertificate = () => {
+    // Check if user has completed all doses
+    const completedDoses = bookings.filter(b => b.status === 'Completed')
+    if (completedDoses.length === 0) {
+      alert('You need to complete at least one dose to download the certificate.')
+      return
+    }
+    // For simplicity, we just alert. In a real app, you'd trigger a file download here.
+    alert('Certificate download triggered! (This is a placeholder)')
+  } 
+  
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -100,10 +76,6 @@ const handleCertificate = async () => {
           className="px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50">
           Reviews
         </button>
-          <button onClick={() => navigate('/change-password')}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
-              Change Password
-            </button>
           <button onClick={handleLogout}
             className="px-4 py-2 text-red-500 border border-red-500 rounded-lg hover:bg-red-50">
             Logout
@@ -112,13 +84,11 @@ const handleCertificate = async () => {
       </nav>
 
       <div className="max-w-6xl mx-auto px-8 py-10">
-
-        {/* Welcome */}
         <h2 className="text-3xl font-bold text-gray-800 mb-2">Patient Dashboard</h2>
         <p className="text-gray-500 mb-8">Welcome back, {user?.email}</p>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
           <div className="bg-white rounded-xl p-6 shadow-sm text-center">
             <div className="text-4xl font-bold text-blue-600">{bookings.length}</div>
             <div className="text-gray-500 mt-1">Total Bookings</div>
@@ -135,6 +105,13 @@ const handleCertificate = async () => {
             </div>
             <div className="text-gray-500 mt-1">Pending</div>
           </div>
+          {/* <div
+            onClick={handleDownloadCertificate}
+            className="bg-white rounded-xl p-6 shadow-sm text-center cursor-pointer hover:shadow-md transition-shadow"
+          >
+            <div className="text-3xl">📜</div>
+            <div className="text-blue-600 font-semibold mt-2">Download Certificate</div>
+          </div> */}
         </div>
 
         {/* Certificate Download */}
@@ -184,15 +161,6 @@ const handleCertificate = async () => {
                         {booking.status}
                       </span>
                     </td>
-                    <td className="py-3">
-  {booking.status === 'Pending' && (
-    <button
-      onClick={() => handleCancel(booking.booking_id)}
-      className="px-3 py-1 bg-red-50 text-red-500 rounded-lg text-sm hover:bg-red-100">
-      Cancel
-    </button>
-  )}
-</td>
                   </tr>
                 ))}
               </tbody>

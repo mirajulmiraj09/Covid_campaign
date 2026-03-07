@@ -18,25 +18,25 @@ export default function LoginPage() {
 
     try {
       const res = await api.post('auth/login/', { email, password })
-      console.log('Login response:', res.data)  // Debug log
       const { tokens, user } = res.data.data
       login(user, tokens)
 
-      if (user.role === 'Doctor') {
+      if (user.is_superuser || user.is_staff) {
+        navigate('/admin/dashboard')
+      } else if (user.role === 'Doctor') {
         navigate('/doctor/dashboard')
       } else {
         navigate('/patient/dashboard')
       }
     } catch (err) {
-        console.error('Login error:', err)  // Debug log
-      setError('Invalid email or password.')
+      setError('Invalid email or password.'+ (err.response?.data?.message ? ` (${err.response.data.message})` : ''))
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 to-blue-100 flex items-center justify-center">
       <div className="bg-white rounded-2xl shadow-lg p-10 w-full max-w-md">
         
         {/* Logo */}
