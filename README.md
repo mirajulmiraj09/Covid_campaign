@@ -1,20 +1,9 @@
-# 💉 VacciCare — Vaccination Management System
+                        Vaccination Management System
 
-A full-stack web application for managing vaccination campaigns, appointments, and records.
+The Vaccination Management System allows users to manage vaccination records efficiently. Patients can register, provide their medical details, and select required vaccinations. The system ensures scheduling, dose booking, and patient-doctor interaction for better vaccination campaign management. The platform will support at least 3-4 vaccination campaigns at a time.
 
----
 
-## 👥 Team
-| Name | Role |
-|------|------|
-| Your Friend | Backend Developer (Django, REST API, Database) |
-| You | Frontend Developer (React, UI, API Integration) |
-
----
-
-## 🛠️ Tech Stack
-
-### Backend
+### Backend Tools
 - **Python** + **Django 6.0**
 - **Django REST Framework** — API development
 - **SimpleJWT** — JWT Authentication
@@ -29,55 +18,6 @@ A full-stack web application for managing vaccination campaigns, appointments, a
 - **React Router** — Navigation
 - **Context API** — Auth state management
 
----
-
-## 📁 Project Structure
-
-```
-Covid_campaign/
-├── backend/
-│   ├── accounts/         # Users, Profiles, Roles, Auth
-│   ├── campaigns/        # Campaigns & Vaccines
-│   ├── operations/       # Bookings & Vaccination Records
-│   ├── reviews/          # Campaign Reviews
-│   ├── core/             # URL routing hub
-│   ├── covid_campaign_system/  # Django settings
-│   ├── .env              # Environment variables
-│   └── manage.py
-└── frontend/
-    └── src/
-        ├── pages/
-        │   ├── LandingPage.jsx
-        │   ├── ProfilePage.jsx
-        │   ├── auth/
-        │   │   ├── LoginPage.jsx
-        │   │   └── RegisterPage.jsx
-        │   ├── patient/
-        │   │   ├── PatientDashboard.jsx
-        │   │   ├── BookAppointment.jsx
-        │   │   └── CampaignReviews.jsx
-        │   └── doctor/
-        │       ├── DoctorDashboard.jsx
-        │       ├── ManageCampaigns.jsx
-        │       ├── ManageVaccines.jsx
-        │       └── VaccinatePage.jsx
-        ├── context/
-        │   └── AuthContext.jsx
-        ├── services/
-        │   └── api.js
-        └── App.jsx
-```
-
----
-
-## 🚀 Setup & Installation
-
-### Prerequisites
-- Python 3.10+
-- Node.js 18+
-- Git
-
----
 
 ### Backend Setup
 
@@ -115,8 +55,6 @@ python manage.py runserver
 Backend runs at: `http://127.0.0.1:8000`
 Admin panel at: `http://127.0.0.1:8000/admin`
 
----
-
 ### Frontend Setup
 
 ```bash
@@ -129,70 +67,8 @@ npm install
 # 3. Start development server
 npm run dev
 ```
-
 Frontend runs at: `http://localhost:5173`
 
----
-
-## 🔗 API Endpoints
-
-### Authentication
-| Method | Endpoint | Access | Description |
-|--------|----------|--------|-------------|
-| POST | `/api/v1/auth/register/patient/` | Public | Register as patient |
-| POST | `/api/v1/auth/register/doctor/` | Doctor only | Register as doctor |
-| POST | `/api/v1/auth/login/` | Public | Login & get JWT tokens |
-| POST | `/api/v1/auth/change-password/` | Authenticated | Change password |
-| GET/PUT | `/api/v1/profiles/me/` | Authenticated | View/update profile |
-| GET | `/api/v1/doctors/` | Public | List all doctors |
-
-### Campaigns
-| Method | Endpoint | Access | Description |
-|--------|----------|--------|-------------|
-| GET | `/api/v1/campaigns/` | Authenticated | List all campaigns |
-| POST | `/api/v1/campaigns/` | Doctor | Create campaign |
-| GET | `/api/v1/campaigns/<id>/vaccines/` | Authenticated | List vaccines in campaign |
-| POST | `/api/v1/vaccines/` | Doctor | Add vaccine to campaign |
-| PATCH | `/api/v1/vaccines/<id>/` | Doctor | Update vaccine |
-| DELETE | `/api/v1/vaccines/<id>/` | Doctor | Delete vaccine |
-
-### Bookings & Operations
-| Method | Endpoint | Access | Description |
-|--------|----------|--------|-------------|
-| GET | `/api/v1/bookings/my-bookings/` | Patient | View my bookings |
-| POST | `/api/v1/bookings/` | Patient | Book appointment (auto creates dose 2) |
-| POST | `/api/v1/bookings/<id>/cancel/` | Patient | Cancel booking |
-| GET | `/api/v1/doctor/appointments/` | Doctor | View daily appointments |
-| POST | `/api/v1/vaccinate/` | Doctor | Record vaccination |
-| GET | `/api/v1/certificates/<nid>/` | Authenticated | Download PDF certificate |
-
-### Reviews
-| Method | Endpoint | Access | Description |
-|--------|----------|--------|-------------|
-| GET | `/api/v1/campaigns/<id>/reviews/` | Authenticated | Get campaign reviews |
-| POST | `/api/v1/reviews/` | Patient | Write a review |
-| GET | `/api/v1/reviews/my-reviews/` | Patient | View my reviews |
-
----
-
-## 📱 Frontend Pages
-
-| Page | Route | Access |
-|------|-------|--------|
-| Landing Page | `/` | Public |
-| Login | `/login` | Public |
-| Register | `/register` | Public |
-| Patient Dashboard | `/patient/dashboard` | Patient |
-| Book Appointment | `/patient/book` | Patient |
-| Campaign Reviews | `/patient/reviews` | Patient |
-| Patient Profile | `/patient/profile` | Patient |
-| Doctor Dashboard | `/doctor/dashboard` | Doctor |
-| Manage Campaigns | `/doctor/campaigns` | Doctor |
-| Manage Vaccines | `/doctor/campaigns/:id/vaccines` | Doctor |
-| Record Vaccination | `/doctor/vaccinate/:id` | Doctor |
-| Doctor Profile | `/doctor/profile` | Doctor |
-
----
 
 ## ✅ Features
 
@@ -220,23 +96,6 @@ Frontend runs at: `http://localhost:5173`
 - **Patient** 1:N **Booking** — A patient can have many bookings
 - **Booking** 1:1 **VaccinationRecord** — One booking = one vaccination record
 - **Patient** 1:N **CampaignReview** — A patient can review campaigns they attended
-
----
-
-## 🔐 Test Credentials
-
-### Admin
-- URL: `http://127.0.0.1:8000/admin`
-- Email: `admin@admin.com`
-- Password: `admin1234`
-
-### Doctor
-- Email: `doctor@test.com`
-- Password: `Test1234!`
-
-### Patient
-- Email: `patient2@test.com`
-- Password: `Test1234!`
 
 ---
 
