@@ -1,11 +1,10 @@
-
 # Django Imports
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 # Python Standard Library
-from datetime import datetime
+from datetime import datetime, date, timedelta
 import io
 
 # DRF Imports
@@ -57,7 +56,6 @@ class BookingCreateView(CreateAPIView):
         serializer.is_valid(raise_exception=True)
         booking = serializer.save()
 
-        # Return the created booking using the read serializer
         response_serializer = BookingSerializer(
             booking,
             context={'request': request}
@@ -68,9 +66,7 @@ class BookingCreateView(CreateAPIView):
 class CampaignVaccinesView(APIView):
     """
     GET /bookings/campaign/<campaign_id>/vaccines/
-    
-    Returns campaign info + filtered vaccine list for the booking form auto-fill.
-    Frontend calls this when the patient selects a campaign.
+    Returns campaign info + filtered vaccine list for the booking form.
     """
     permission_classes = [IsAuthenticated]
 
@@ -87,52 +83,42 @@ class CampaignVaccinesView(APIView):
         vaccine_data = CampaignVaccinesSerializer(vaccines, many=True).data
 
         data = {
-            # Campaign info — auto-fills read-only fields in the booking form
             'campaign_id': campaign.campaign_id,
             'campaign_title': campaign.title,
             'campaign_start_date': campaign.start_date,
             'campaign_end_date': campaign.end_date,
             'campaign_is_active': campaign.is_active,
-            # Vaccine dropdown — filtered to this campaign only
             'vaccines': vaccine_data,
         }
         return Response(data, status=status.HTTP_200_OK)
 
 
-
-
 class BookingCancelView(APIView):
-    """
-    POST: Cancel a booking (owner only, pending or approved only)
-    """
+    """POST: Cancel a booking (owner only, pending or approved only)"""
     permission_classes = [IsPatient, IsBookingOwner]
-    
+
     def post(self, request, booking_id):
         booking = get_object_or_404(Booking, booking_id=booking_id)
-        
-        # Check ownership
+
         if booking.patient != request.user:
             return Response({
                 'status': 'error',
                 'message': 'You do not have permission to cancel this booking.'
             }, status=status.HTTP_403_FORBIDDEN)
-        
-        # Check if pending or approved
+
         if booking.status not in ('Pending', 'Approved'):
             return Response({
                 'status': 'error',
                 'message': f'Cannot cancel booking with status: {booking.status}'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Cancel booking
+
         booking.status = 'Cancelled'
         booking.save()
-        
-        # Restore stock
+
         vaccine = booking.vaccine
         vaccine.stock_quantity += 1
         vaccine.save()
-        
+
         return Response({
             'status': 'success',
             'message': 'Booking cancelled successfully'
@@ -141,14 +127,14 @@ class BookingCancelView(APIView):
 
 class DoctorAppointmentsView(generics.ListAPIView):
     """
-    GET: List doctor's approved appointments.
+    GET: List doctor's APPROVED appointments for today (or a given date).
     Query params:
       ?date=YYYY-MM-DD  → filter specific date (default: today)
       ?scope=upcoming   → all approved from today onward
     """
     serializer_class = BookingSerializer
     permission_classes = [IsDoctor]
-    
+
     def get_queryset(self):
         scope = self.request.query_params.get('scope', None)
         today = timezone.now().date()
@@ -170,13 +156,12 @@ class DoctorAppointmentsView(generics.ListAPIView):
             filter_date = today
 
         return base.filter(scheduled_date=filter_date).order_by('scheduled_date')
-    
+
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
-        
         date_str = self.request.query_params.get('date', str(timezone.now().date()))
-        
+
         return Response({
             'status': 'success',
             'date': date_str,
@@ -187,7 +172,7 @@ class DoctorAppointmentsView(generics.ListAPIView):
 
 class PendingBookingsView(generics.ListAPIView):
     """
-    GET: List pending bookings for campaigns the doctor is assigned to.
+    GET: List PENDING bookings for campaigns the doctor is assigned to.
     Query params: ?category=today|previous|upcoming (default: all)
     """
     serializer_class = BookingSerializer
@@ -244,7 +229,6 @@ class BookingApproveView(APIView):
                 'message': f'Cannot approve booking with status: {booking.status}'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Only doctors assigned to the campaign can approve
         campaign = booking.vaccine.campaign
         if not campaign.assigned_doctors.filter(pk=request.user.pk).exists():
             return Response({
@@ -274,7 +258,6 @@ class BookingRejectView(APIView):
                 'message': f'Cannot reject booking with status: {booking.status}'
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Only doctors assigned to the campaign can reject
         campaign = booking.vaccine.campaign
         if not campaign.assigned_doctors.filter(pk=request.user.pk).exists():
             return Response({
@@ -285,7 +268,6 @@ class BookingRejectView(APIView):
         booking.status = 'Rejected'
         booking.save()
 
-        # Restore stock since booking is rejected
         vaccine = booking.vaccine
         vaccine.stock_quantity += 1
         vaccine.save()
@@ -297,26 +279,23 @@ class BookingRejectView(APIView):
 
 
 class VaccinateView(generics.CreateAPIView):
-    """
-    POST: Record a vaccination (Doctor only)
-    """
+    """POST: Record a vaccination (Doctor only)"""
     serializer_class = VaccinateSerializer
     permission_classes = [IsDoctor]
-    
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, context={'request': request})
-        
+
         if serializer.is_valid():
             record = serializer.save()
-            
             response_serializer = VaccinationRecordSerializer(record)
-            
+
             return Response({
                 'status': 'success',
                 'message': 'Vaccination recorded successfully',
                 'data': response_serializer.data
             }, status=status.HTTP_201_CREATED)
-        
+
         return Response({
             'status': 'error',
             'message': 'Vaccination recording failed',
@@ -327,10 +306,9 @@ class VaccinateView(generics.CreateAPIView):
 @api_view(['GET'])
 @permission_classes([IsPatient])
 def download_certificate(request, nid):
-    """
-    GET: Download vaccination certificate PDF
-    """
-    # Check if NID belongs to authenticated user
+    """GET: Download vaccination certificate PDF"""
+
+    # Check NID belongs to authenticated user
     try:
         profile = Profile.objects.get(nid=nid)
         if profile.user != request.user:
@@ -343,68 +321,78 @@ def download_certificate(request, nid):
             'status': 'error',
             'message': 'Profile not found.'
         }, status=status.HTTP_404_NOT_FOUND)
-    
-    # Check if all doses are completed
-    all_bookings = Booking.objects.filter(patient=profile.user)
-    completed_bookings = all_bookings.filter(status__in=['Completed', 'Approved'])
-    
+
+    # Only count non-cancelled, non-rejected bookings
+    all_bookings = Booking.objects.filter(
+        patient=profile.user
+    ).exclude(status__in=['Cancelled', 'Rejected'])
+
+    completed_bookings = all_bookings.filter(status='Completed')
+
     if not all_bookings.exists():
         return Response({
             'status': 'error',
             'message': 'No vaccination records found.'
         }, status=status.HTTP_404_NOT_FOUND)
-    
+
+    if completed_bookings.count() == 0:
+        return Response({
+            'status': 'error',
+            'message': 'You need at least one completed dose to download the certificate.'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check all non-cancelled bookings are completed
     if all_bookings.count() != completed_bookings.count():
         return Response({
             'status': 'error',
-            'message': 'Not all doses are completed yet.'
+            'message': f'Not all doses are completed yet. ({completed_bookings.count()}/{all_bookings.count()} done)'
         }, status=status.HTTP_400_BAD_REQUEST)
-    
+
     # Generate PDF
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
-    
+
     # Title
     p.setFont("Helvetica-Bold", 24)
-    p.drawCentredString(width/2, height - 100, "VACCINATION CERTIFICATE")
-    
+    p.drawCentredString(width / 2, height - 100, "VACCINATION CERTIFICATE")
+
     # Patient Info
     p.setFont("Helvetica-Bold", 14)
     p.drawString(100, height - 150, "Patient Information:")
-    
+
     p.setFont("Helvetica", 12)
     p.drawString(100, height - 180, f"Name: {profile.first_name} {profile.last_name}")
     p.drawString(100, height - 200, f"NID: {profile.nid}")
     p.drawString(100, height - 220, f"Date of Birth: {profile.dob}")
-    
+
     # Vaccination Records
     p.setFont("Helvetica-Bold", 14)
     p.drawString(100, height - 270, "Vaccination Records:")
-    
+
     y_position = height - 300
     p.setFont("Helvetica", 10)
-    
-    for booking in completed_bookings:
+
+    for booking in completed_bookings.order_by('dose_number'):
         record = VaccinationRecord.objects.filter(booking=booking).first()
         if record:
-            p.drawString(100, y_position, 
+            p.drawString(100, y_position,
                 f"Dose {booking.dose_number}: {booking.vaccine.name} - "
                 f"Date: {record.administered_at.strftime('%Y-%m-%d')} - "
                 f"Batch: {record.batch_number}")
             y_position -= 20
-    
+
     # Footer
-    p.setFont("Helvetica-Italic", 10)
-    p.drawCentredString(width/2, 50, 
+    p.setFont("Helvetica", 10)
+    p.drawCentredString(width / 2, 50,
         f"Certificate generated on {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    
+
     p.showPage()
     p.save()
-    
+
     buffer.seek(0)
-    
+
     response = HttpResponse(buffer, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="vaccination_certificate_{nid}.pdf"'
-    
+
     return response
