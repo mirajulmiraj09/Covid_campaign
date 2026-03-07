@@ -346,7 +346,7 @@ def download_certificate(request, nid):
     
     # Check if all doses are completed
     all_bookings = Booking.objects.filter(patient=profile.user)
-    completed_bookings = all_bookings.filter(status='Completed')
+    completed_bookings = all_bookings.filter(status__in=['Completed', 'Approved'])
     
     if not all_bookings.exists():
         return Response({

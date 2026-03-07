@@ -1,11 +1,23 @@
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
+import { useEffect } from 'react'
 import Navbar from '../components/Navbar'
 
 export default function LandingPage() {
   const navigate = useNavigate()
+  const { user, isAdmin, isDoctor } = useAuth()
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      if (isAdmin) navigate('/admin/dashboard')
+      else if (isDoctor) navigate('/doctor/dashboard')
+      else navigate('/patient/dashboard')
+    }
+  }, [user])
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 to-blue-100">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100">
       <Navbar />
 
       {/* Hero */}
