@@ -18,6 +18,7 @@ export default function LoginPage() {
 
     try {
       const res = await api.post('auth/login/', { email, password })
+      console.log('Login response:', res.data)  // Debug log
       const { tokens, user } = res.data.data
       login(user, tokens)
 
@@ -27,6 +28,7 @@ export default function LoginPage() {
         navigate('/patient/dashboard')
       }
     } catch (err) {
+        console.error('Login error:', err)  // Debug log
       setError('Invalid email or password.')
     } finally {
       setLoading(false)
